@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello worlds</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #020005; /* Deep void background */
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        #container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* Canvas size: 200vmax ensures coverage during rotation.
+           Rendering: Pixelated for crisp cellular automata edges.
+        */
+        canvas {
+            position: absolute;
+            width: 200vmax;
+            height: 200vmax;
+            image-rendering: pixelated; 
+            box-shadow: 0 0 150px rgba(100, 0, 255, 0.15); /* Ambient glow */
+            will-change: transform;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ui-btn {
+            background-color: rgba(20, 10, 40, 0.6);
+            color: #e0ccff;
+            border: 1px solid rgba(180, 160, 255, 0.4);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            font-family: 'Courier New', Courier, monospace;
+            min-width: 170px;
+        }
+
+        .ui-btn:hover {
+            background-color: rgba(180, 160, 255, 0.25);
+            border-color: #fff;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(180, 160, 255, 0.4);
+        }
+        
+        #loading {
+            position: absolute;
+            color: #fff;
+            font-size: 24px;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="loading">Initializing Universe...</div>
+        <canvas id="caCanvas"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <button id="pauseBtn" class="ui-btn">Spacebar to Pause</button>
+        <button id="fsBtn" class="ui-btn">Fullscreen (F)</button>
+    </div>
+
+<script>
+    /**
+     * CONFIGURATION
+     */
+    const RESOLUTION = 1920; 
+    const COLS = RESOLUTION; 
+    const ROWS = RESOLUTION * 3/4; 
+    
+    const TICK_MS = 1;       
+    const CYCLE_TICKS = 900; // Change color palette
+    const LERP_SPEED = 0.0005; // Very slow, smooth color morphing
+    const RANDOM_RATE = 0.00001; // A little entropy
+
+    // Rotation Configuration
+    const ROTATION_CHANGE_MS = 6000; 
+    const MIN_ROT_SPEED = 1;         
+    const MAX_ROT_SPEED = 2;
+
+// Hubble & Webb Inspired Palettes
+const PALETTES = [
+    // --- ORIGINAL SET (0-9) ---
+    // 0: Pillars of Creation (Classic Hubble Palette: Sulfur/Hydrogen/Oxygen)
+    { 
+        low:  { r: 0,   g: 60,  b: 90  }, // Deep Teal
+        high: { r: 255, g: 215, b: 100 }, // Gold/Sulfur
+        bg:   { r: 2,   g: 10,  b: 20  }  // Dark Blue Void
+    },
+    // 1: Carina Nebula (Mystic Mountain: Chaos and contrast)
+    { 
+        low:  { r: 70,  g: 10,  b: 50  }, // Deep Maroon
+        high: { r: 100, g: 200, b: 255 }, // Ionized Oxygen Blue
+        bg:   { r: 10,  g: 5,   b: 8   }  // Brownish Black
+    },
+    // 2: The Veil Nebula (Supernova Remnant: Wispy filaments)
+    { 
+        low:  { r: 140, g: 0,   b: 60  }, // Deep Magenta
+        high: { r: 0,   g: 255, b: 220 }, // Electric Cyan
+        bg:   { r: 5,   g: 0,   b: 15  }  // Deep Indigo
+    },
+    // 3: Orion Nebula (Stellar Nursery: Warmth vs Cold)
+    { 
+        low:  { r: 100, g: 40,  b: 100 }, // Dusty Purple
+        high: { r: 255, g: 150, b: 120 }, // Peach/Salmon
+        bg:   { r: 15,  g: 10,  b: 20  }  // Dusty Void
+    },
+    // 4: Ultraviolet (High Energy: Neon/Cyberpunk space)
+    { 
+        low:  { r: 30,  g: 0,   b: 180 }, // Deep Blue
+        high: { r: 0,   g: 255, b: 100 }, // Neon Green
+        bg:   { r: 0,   g: 0,   b: 25  }  // Midnight Blue
+    },
+    // 5: Butterfly Nebula (Hot Gas: Intense heat)
+    { 
+        low:  { r: 160, g: 40,  b: 0   }, // Burnt Orange
+        high: { r: 255, g: 255, b: 200 }, // Blazing White/Yellow
+        bg:   { r: 5,   g: 0,   b: 0   }  // Pitch Black
+    },
+    // 6: Tarantula Nebula (Radioactive: Eerie glow)
+    { 
+        low:  { r: 20,  g: 60,  b: 20  }, // Swamp Green
+        high: { r: 200, g: 255, b: 50  }, // Toxic Lime
+        bg:   { r: 0,   g: 15,  b: 5   }  // Deep Forest
+    },
+    // 7: Rose Nebula (Soft: Romantic/Floral)
+    { 
+        low:  { r: 100, g: 0,   b: 40  }, // Deep Red
+        high: { r: 255, g: 180, b: 200 }, // Soft Pink
+        bg:   { r: 20,  g: 0,   b: 10  }  // Dark Red Void
+    },
+    // 8: Phantom Galaxy (Infrared: Webb Style)
+    { 
+        low:  { r: 60,  g: 0,   b: 100 }, // Dark Violet
+        high: { r: 255, g: 100, b: 0   }, // Glowing Orange
+        bg:   { r: 5,   g: 0,   b: 15  }  // Deep Purple
+    },
+    // 9: Galactic Center (Dense: Silver/Blue)
+    { 
+        low:  { r: 50,  g: 60,  b: 90  }, // Steel Blue
+        high: { r: 220, g: 230, b: 255 }, // Starlight White
+        bg:   { r: 2,   g: 5,   b: 15  }  // Cold Black
+    },
+
+    // --- NEW ADDITIONS (10-45) ---
+
+    // 10: Horsehead Nebula (Silhouette: Deep contrast)
+    { 
+        low:  { r: 80,  g: 0,   b: 20  }, // Blood Red
+        high: { r: 255, g: 200, b: 210 }, // Pale Rose
+        bg:   { r: 0,   g: 0,   b: 0   }  // True Black
+    },
+    // 11: The Pleiades (Reflection: Icy Blue)
+    { 
+        low:  { r: 0,   g: 50,  b: 120 }, // Royal Blue
+        high: { r: 200, g: 240, b: 255 }, // Diamond White
+        bg:   { r: 0,   g: 5,   b: 25  }  // Deep Navy
+    },
+    // 12: Mars Surface (Planetary: Rust and dust)
+    { 
+        low:  { r: 120, g: 40,  b: 10  }, // Iron Oxide
+        high: { r: 255, g: 160, b: 100 }, // Dusty Orange
+        bg:   { r: 25,  g: 10,  b: 5   }  // Brown Void
+    },
+    // 13: Neptune's Winds (Cold Giant: Azure tones)
+    { 
+        low:  { r: 0,   g: 40,  b: 100 }, // Cobalt
+        high: { r: 100, g: 255, b: 255 }, // Cyan Methane
+        bg:   { r: 0,   g: 5,   b: 15  }  // Black Blue
+    },
+    // 14: Solar Flare (Coronal Mass: Aggressive heat)
+    { 
+        low:  { r: 200, g: 50,  b: 0   }, // Solar Red
+        high: { r: 255, g: 255, b: 0   }, // Pure Yellow
+        bg:   { r: 30,  g: 5,   b: 0   }  // Dark Heat
+    },
+    // 15: Black Hole Accretion (Event Horizon: Gravity lensing)
+    { 
+        low:  { r: 150, g: 30,  b: 0   }, // Redshift Orange
+        high: { r: 255, g: 240, b: 200 }, // White Hot Ring
+        bg:   { r: 5,   g: 5,   b: 5   }  // Singularity Grey
+    },
+    // 16: Aurora Borealis (Ionosphere: Terrestrial glow)
+    { 
+        low:  { r: 0,   g: 100, b: 60  }, // Deep Emerald
+        high: { r: 100, g: 255, b: 150 }, // Fluorescent Green
+        bg:   { r: 10,  g: 10,  b: 30  }  // Night Sky
+    },
+    // 17: Red Shift (Doppler: Moving away)
+    { 
+        low:  { r: 80,  g: 0,   b: 0   }, // Crimson
+        high: { r: 255, g: 100, b: 100 }, // Faded Red
+        bg:   { r: 10,  g: 0,   b: 0   }  // Dark Infrared
+    },
+    // 18: Blue Shift (Doppler: Moving closer)
+    { 
+        low:  { r: 0,   g: 0,   b: 150 }, // Deep Sapphire
+        high: { r: 150, g: 200, b: 255 }, // Approaching Blue
+        bg:   { r: 0,   g: 0,   b: 20  }  // Deep UV
+    },
+    // 19: Cosmic Microwave Background (Ancient: Static)
+    { 
+        low:  { r: 40,  g: 60,  b: 100 }, // Cool Speckle
+        high: { r: 255, g: 150, b: 50  }, // Hot Speckle
+        bg:   { r: 20,  g: 20,  b: 25  }  // Uniform Grey
+    },
+    // 20: Helix Nebula (Eye of God: Aqua/Orange)
+    { 
+        low:  { r: 0,   g: 80,  b: 100 }, // Outer Ring Teal
+        high: { r: 255, g: 120, b: 100 }, // Inner Eye Coral
+        bg:   { r: 5,   g: 10,  b: 15  }  // Dark Slate
+    },
+    // 21: Jupiter's Storms (Gas Giant: Cream/Brown)
+    { 
+        low:  { r: 140, g: 80,  b: 40  }, // Storm Band Brown
+        high: { r: 240, g: 230, b: 200 }, // Ammonia Cloud Cream
+        bg:   { r: 15,  g: 10,  b: 5   }  // Dark Beige
+    },
+    // 22: Crab Nebula (Remnant: Chaotic spectrum)
+    { 
+        low:  { r: 40,  g: 80,  b: 160 }, // Synchrotron Blue
+        high: { r: 255, g: 180, b: 0   }, // Filament Orange
+        bg:   { r: 10,  g: 10,  b: 20  }  // Deep Space Grey
+    },
+    // 23: Dark Matter (Invisible: Subtle Web)
+    { 
+        low:  { r: 40,  g: 30,  b: 60  }, // Shadow Purple
+        high: { r: 120, g: 120, b: 140 }, // Gravitational Grey
+        bg:   { r: 10,  g: 8,   b: 12  }  // Absolute Void
+    },
+    // 24: Quasar Jet (High Energy: Violet/White)
+    { 
+        low:  { r: 100, g: 0,   b: 200 }, // Ultraviolet Beam
+        high: { r: 255, g: 255, b: 255 }, // Core Brilliance
+        bg:   { r: 10,  g: 0,   b: 30  }  // Purple Haze
+    },
+    // 25: Sombrero Galaxy (Dust Lane: Halo effect)
+    { 
+        low:  { r: 80,  g: 70,  b: 60  }, // Dust Lane Brown
+        high: { r: 230, g: 230, b: 255 }, // Galactic Halo White
+        bg:   { r: 5,   g: 5,   b: 10  }  // Standard Space
+    },
+    // 26: Neutron Star (Density: Magnetic Blue)
+    { 
+        low:  { r: 0,   g: 100, b: 180 }, // Magnetic Field
+        high: { r: 200, g: 240, b: 255 }, // Surface Heat
+        bg:   { r: 0,   g: 0,   b: 10  }  // Crushed Black
+    },
+    // 27: Comet Tail (Sublimation: Ion vs Dust)
+    { 
+        low:  { r: 0,   g: 100, b: 100 }, // Cyan Ion Tail
+        high: { r: 255, g: 240, b: 200 }, // Dust Tail White
+        bg:   { r: 5,   g: 10,  b: 15  }  // Starfield
+    },
+    // 28: Lagoon Nebula (HII Region: Grey/Pink)
+    { 
+        low:  { r: 60,  g: 50,  b: 60  }, // Ash Grey
+        high: { r: 255, g: 100, b: 140 }, // Hydrogen Pink
+        bg:   { r: 10,  g: 8,   b: 10  }  // Warm Black
+    },
+    // 29: Ring Nebula (Dying Star: Rainbow gradient)
+    { 
+        low:  { r: 0,   g: 0,   b: 120 }, // Central Blue
+        high: { r: 255, g: 200, b: 0   }, // Outer Red/Orange
+        bg:   { r: 5,   g: 5,   b: 15  }  // Deep Sky
+    },
+    // 30: Whirlpool Galaxy (Spiral: Interaction)
+    { 
+        low:  { r: 180, g: 140, b: 100 }, // Companion Galaxy Yellow
+        high: { r: 100, g: 180, b: 255 }, // Spiral Arm Blue
+        bg:   { r: 5,   g: 5,   b: 10  }  // Dark Grey
+    },
+    // 31: Trappist-1 System (Red Dwarf: Dim light)
+    { 
+        low:  { r: 80,  g: 20,  b: 10  }, // Dull Red
+        high: { r: 255, g: 100, b: 80  }, // Sunset Glow
+        bg:   { r: 15,  g: 5,   b: 5   }  // Infra-Black
+    },
+    // 32: Oort Cloud (Outer Limits: Icy darkness)
+    { 
+        low:  { r: 30,  g: 40,  b: 50  }, // Dirty Ice
+        high: { r: 180, g: 190, b: 200 }, // Distant Reflection
+        bg:   { r: 2,   g: 2,   b: 5   }  // Empty Space
+    },
+    // 33: Supernova 1987A (Shockwave: Rings)
+    { 
+        low:  { r: 200, g: 50,  b: 50  }, // Debris Red
+        high: { r: 255, g: 200, b: 150 }, // Pearl Necklace
+        bg:   { r: 10,  g: 5,   b: 5   }  // Dark Blast
+    },
+    // 34: Wolf-Rayet Star (Unstable: Bubble Nebula)
+    { 
+        low:  { r: 100, g: 0,   b: 150 }, // Bubble Purple
+        high: { r: 255, g: 50,  b: 150 }, // Shock Pink
+        bg:   { r: 10,  g: 0,   b: 20  }  // Violet Void
+    },
+    // 35: Stephan's Quintet (Group: Galaxy interaction)
+    { 
+        low:  { r: 100, g: 80,  b: 40  }, // Old Stars Gold
+        high: { r: 200, g: 220, b: 230 }, // Shockwave White
+        bg:   { r: 10,  g: 10,  b: 15  }  // Deep Field
+    },
+    // 36: Kuiper Belt (Asteroids: Cold rock)
+    { 
+        low:  { r: 50,  g: 60,  b: 70  }, // Slate Blue
+        high: { r: 140, g: 150, b: 160 }, // Frozen Rock
+        bg:   { r: 2,   g: 3,   b: 5   }  // Abyss
+    },
+    // 37: Venus Atmosphere (Acidic: Toxic yellow)
+    { 
+        low:  { r: 150, g: 100, b: 0   }, // Sulphuric Acid
+        high: { r: 255, g: 230, b: 150 }, // Reflective Cloud
+        bg:   { r: 20,  g: 15,  b: 0   }  // Dense Haze
+    },
+    // 38: Magnetosphere (Shield: Invisible forces)
+    { 
+        low:  { r: 50,  g: 0,   b: 100 }, // Field Line Violet
+        high: { r: 0,   g: 200, b: 255 }, // Plasma Blue
+        bg:   { r: 5,   g: 0,   b: 15  }  // Deep Mag
+    },
+    // 39: Binary Star System (Contrast: Hot/Cold)
+    { 
+        low:  { r: 255, g: 100, b: 50  }, // Red Giant
+        high: { r: 100, g: 200, b: 255 }, // Blue Dwarf
+        bg:   { r: 10,  g: 5,   b: 15  }  // Mixed Light
+    },
+    // 40: Gravitational Lensing (Warped: Distorted light)
+    { 
+        low:  { r: 60,  g: 80,  b: 120 }, // Warped Space
+        high: { r: 255, g: 230, b: 180 }, // Magnified Light
+        bg:   { r: 5,   g: 8,   b: 12  }  // Bent Black
+    },
+    // 41: Saturn's Rings (Ice: Geometric)
+    { 
+        low:  { r: 180, g: 160, b: 120 }, // Ring Shadow
+        high: { r: 255, g: 245, b: 220 }, // Ice Glint
+        bg:   { r: 10,  g: 8,   b: 5   }  // Planetary Shadow
+    },
+    // 42: Protostar (Birth: Dark Cloud)
+    { 
+        low:  { r: 40,  g: 20,  b: 10  }, // Dense Dust
+        high: { r: 255, g: 220, b: 100 }, // Breaking Through
+        bg:   { r: 0,   g: 0,   b: 0   }  // Opacity
+    },
+    // 43: Gamma Ray Burst (Cataclysm: Pure energy)
+    { 
+        low:  { r: 100, g: 0,   b: 255 }, // High Frequency
+        high: { r: 200, g: 255, b: 255 }, // Blinding Flash
+        bg:   { r: 15,  g: 0,   b: 30  }  // Afterimage
+    },
+    // 44: Local Bubble (Void: Low density)
+    { 
+        low:  { r: 20,  g: 25,  b: 40  }, // Interstellar Medium
+        high: { r: 100, g: 120, b: 150 }, // Soft X-Ray
+        bg:   { r: 5,   g: 6,   b: 8   }  // Empty
+    },
+    // 45: Andromeda Core (Neighbor: Golden glow)
+    { 
+        low:  { r: 150, g: 100, b: 50  }, // Old Stars
+        high: { r: 255, g: 240, b: 200 }, // Dense Nucleus
+        bg:   { r: 15,  g: 10,  b: 5   }  // Galactic Halo
+    }
+];
+
+    /**
+     * STATE
+     */
+    const canvas = document.getElementById('caCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    canvas.width = COLS;
+    canvas.height = ROWS;
+
+    let rowStructure = new Uint8Array(COLS);
+    let rowIntensity = new Uint8Array(COLS);
+    
+    let isPaused = false;
+    let totalTicks = 0; 
+    let paletteIndex = 0;
+
+    // Rotation State
+    let currentAngle = 0;      
+    let currentSpeed = 1;      
+    let lastRotParamUpdate = 0; 
+    let lastFrameTime = 0;     
+
+    // Color State (Start with Palette 0)
+    const initialPaletteIndex = Math.floor(Math.random() * PALETTES.length);
+    let currLow  = { ...PALETTES[initialPaletteIndex].low };
+    let currHigh = { ...PALETTES[initialPaletteIndex].high };
+    let currBg   = { ...PALETTES[initialPaletteIndex].bg };
+    
+    // Target Colors
+    let targetLow  = { ...PALETTES[0].low };
+    let targetHigh = { ...PALETTES[0].high };
+    let targetBg   = { ...PALETTES[0].bg };
+
+    /**
+     * UTILS
+     */
+    function lerp(start, end, amt) {
+        return start + (end - start) * amt;
+    }
+
+    // This runs every frame to slowly drag the current color towards the target
+    function updateColors() {
+        currLow.r = lerp(currLow.r, targetLow.r, LERP_SPEED);
+        currLow.g = lerp(currLow.g, targetLow.g, LERP_SPEED);
+        currLow.b = lerp(currLow.b, targetLow.b, LERP_SPEED);
+
+        currHigh.r = lerp(currHigh.r, targetHigh.r, LERP_SPEED);
+        currHigh.g = lerp(currHigh.g, targetHigh.g, LERP_SPEED);
+        currHigh.b = lerp(currHigh.b, targetHigh.b, LERP_SPEED);
+
+        currBg.r = lerp(currBg.r, targetBg.r, LERP_SPEED);
+        currBg.g = lerp(currBg.g, targetBg.g, LERP_SPEED);
+        currBg.b = lerp(currBg.b, targetBg.b, LERP_SPEED);
+    }
+
+    /**
+     * INITIALIZATION
+     */
+    function init() {
+        const loading = document.getElementById('loading');
+        loading.style.opacity = 1;
+
+        // 1. Seed
+        for (let i = 0; i < COLS; i++) {
+            rowStructure[i] = Math.random() > 0.5 ? 1 : 0;
+            rowIntensity[i] = Math.random() > 0.5 ? 1 : 0;
+        }
+
+        // 2. PRE-FILL BUFFER
+        const fullImage = ctx.createImageData(COLS, ROWS);
+        const data = fullImage.data;
+
+        const rL = currLow.r, gL = currLow.g, bL = currLow.b;
+        const rH = currHigh.r, gH = currHigh.g, bH = currHigh.b;
+        const rB = currBg.r,  gB = currBg.g,  bB = currBg.b;
+
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const idx = (y * COLS + x) * 4;
+                if (rowStructure[x] === 1) {
+                    const intense = rowIntensity[x] === 1;
+                    data[idx]     = intense ? rH : rL;
+                    data[idx + 1] = intense ? gH : gL;
+                    data[idx + 2] = intense ? bH : bL;
+                    data[idx + 3] = 255;
+                } else {
+                    data[idx] = rB; data[idx+1] = gB; data[idx+2] = bB; data[idx+3] = 255;
+                }
+            }
+            rowStructure = computeNextGeneration(rowStructure);
+            rowIntensity = computeNextGeneration(rowIntensity);
+        }
+
+        // 3. Paint once
+        ctx.putImageData(fullImage, 0, 0);
+        loading.style.opacity = 0;
+
+        // 4. Start Loops
+        requestAnimationFrame(tickLoop);
+        requestAnimationFrame(animateRotation);
+    }
+
+    /**
+     * ROTATION LOOP
+     */
+    function animateRotation(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        
+        const dt = (timestamp - lastFrameTime) / 1000;
+        lastFrameTime = timestamp;
+
+        if (timestamp - lastRotParamUpdate > ROTATION_CHANGE_MS) {
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const speed = MIN_ROT_SPEED + Math.random() * (MAX_ROT_SPEED - MIN_ROT_SPEED);
+            currentSpeed = speed * direction;
+            lastRotParamUpdate = timestamp;
+        }
+
+        currentAngle += currentSpeed * dt;
+        canvas.style.transform = `rotate(${currentAngle}deg)`;
+        
+        requestAnimationFrame(animateRotation);
+    }
+
+    /**
+     * CELLULAR AUTOMATA LOGIC
+     */
+    function computeNextGeneration(currentArray) {
+        const nextArray = new Uint8Array(COLS);
+        
+        for (let i = 0; i < COLS; i++) {
+            
+            // Entropy injection
+            if (Math.random() < RANDOM_RATE) {
+                nextArray[i] = Math.random() > 0.5 ? 1 : 0;
+                continue; 
+            }
+
+            const left   = currentArray[(i - 1 + COLS) % COLS];
+            const center = currentArray[i];
+            const right  = currentArray[(i + 1) % COLS];
+
+            // Rule 110
+            let val = 0;
+            if (left === 1 && center === 1 && right === 1) val = 0;
+            else if (left === 1 && center === 1 && right === 0) val = 1;
+            else if (left === 1 && center === 0 && right === 1) val = 1;
+            else if (left === 1 && center === 0 && right === 0) val = 0;
+            else if (left === 0 && center === 1 && right === 1) val = 1;
+            else if (left === 0 && center === 1 && right === 0) val = 1;
+            else if (left === 0 && center === 0 && right === 1) val = 1;
+            else if (left === 0 && center === 0 && right === 0) val = 0;
+            
+            nextArray[i] = val;
+        }
+        return nextArray;
+    }
+
+    /**
+     * MAIN DRAW LOOP
+     */
+    let lastTick = 0;
+
+    function tickLoop(timestamp) {
+        if (!lastTick) lastTick = timestamp;
+        const delta = timestamp - lastTick;
+
+        if (!isPaused && delta > TICK_MS) {
+            lastTick = timestamp;
+            totalTicks++;
+
+            // CHECK FOR COLOR CYCLE EVERY 3000 TICKS
+            if (totalTicks % CYCLE_TICKS === 0) {
+                paletteIndex = Math.floor(Math.random() * PALETTES.length);
+
+                // Set the new target
+                targetLow  = PALETTES[paletteIndex].low;
+                targetHigh = PALETTES[paletteIndex].high;
+                targetBg   = PALETTES[paletteIndex].bg;
+                
+                // console.log("Morphing to palette index:", paletteIndex);
+            }
+
+            updateColors();
+
+            // Shift image UP
+            ctx.drawImage(canvas, 0, 1, COLS, ROWS - 1, 0, 0, COLS, ROWS - 1);
+            
+            // Draw NEW row
+            drawSingleRow(ROWS - 1);
+
+            // Compute next
+            rowStructure = computeNextGeneration(rowStructure);
+            rowIntensity = computeNextGeneration(rowIntensity);
+        }
+
+        requestAnimationFrame(tickLoop);
+    }
+
+    function drawSingleRow(y) {
+        const imgData = ctx.createImageData(COLS, 1);
+        const data = imgData.data;
+
+        // Convert current floating point colors to integers for this frame
+        const rL = Math.floor(currLow.r), gL = Math.floor(currLow.g), bL = Math.floor(currLow.b);
+        const rH = Math.floor(currHigh.r), gH = Math.floor(currHigh.g), bH = Math.floor(currHigh.b);
+        const rB = Math.floor(currBg.r),  gB = Math.floor(currBg.g),  bB = Math.floor(currBg.b);
+
+        for (let i = 0; i < COLS; i++) {
+            const index = i * 4;
+            if (rowStructure[i] === 1) {
+                const intense = rowIntensity[i] === 1;
+                data[index]     = intense ? rH : rL;
+                data[index + 1] = intense ? gH : gL;
+                data[index + 2] = intense ? bH : bL;
+                data[index + 3] = 255; 
+            } else {
+                data[index] = rB; data[index+1] = gB; data[index+2] = bB; data[index+3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, y);
+    }
+
+    /**
+     * UI & EVENTS
+     */
+    const fsBtn = document.getElementById('fsBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const container = document.getElementById('container');
+
+    function togglePause() {
+        isPaused = !isPaused;
+        pauseBtn.textContent = isPaused ? "Spacebar to Resume" : "Spacebar to Pause";
+    }
+
+    pauseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePause();
+    });
+
+    container.addEventListener('click', togglePause);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            togglePause();
+        }
+        if (e.key.toLowerCase() === 'f') {
+            toggleFullScreen();
+        }
+    });
+
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(console.error);
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    }
+
+    fsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFullScreen();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        fsBtn.textContent = document.fullscreenElement ? "Exit Fullscreen (F)" : "Fullscreen (F)";
+    });
+
+    setTimeout(init, 100);
+
+</script>
+</body>
+</html>
