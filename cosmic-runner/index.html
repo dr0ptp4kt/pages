@@ -1,0 +1,2982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cosmic Runner — In The Beginning</title>
+  <style>
+/* ==========================================================================
+   Cosmic Runner — In The Beginning
+   Pure CSS — no preprocessors, no frameworks
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #050510;
+  --accent-hue: 200;
+  --accent: hsl(var(--accent-hue), 70%, 55%);
+  --text: #e0e0e0;
+  --text-dim: #666;
+  --hud-bg: rgba(5, 5, 16, 0.6);
+  --bar-bg: rgba(10, 10, 20, 0.85);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+  user-select: none;
+}
+
+/* ---------- Screens ---------- */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+.screen.active {
+  display: flex;
+}
+
+/* ---------- Title Screen ---------- */
+#title-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #0a0a30 0%, #050510 70%);
+}
+
+.title-content {
+  text-align: center;
+}
+
+.title-text {
+  font-size: clamp(32px, 8vw, 72px);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(135deg, #4af, #a4f, #f4a, #4af);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: title-shimmer 4s ease infinite;
+}
+
+@keyframes title-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.subtitle {
+  font-size: clamp(12px, 3vw, 18px);
+  color: var(--text-dim);
+  margin-top: 8px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.title-aki {
+  width: 64px;
+  height: 64px;
+  margin: 40px auto;
+  background: var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 20px var(--accent), 0 0 60px rgba(100, 180, 255, 0.3);
+  animation: title-float 3s ease-in-out infinite;
+}
+
+@keyframes title-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.start-btn {
+  display: inline-block;
+  padding: 14px 48px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #fff;
+  background: linear-gradient(135deg, hsl(200, 70%, 45%), hsl(260, 70%, 50%));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(100, 150, 255, 0.4);
+}
+
+.controls-hint {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ---------- Game Canvas ---------- */
+#game-screen {
+  flex-direction: column;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-left, .hud-right, .hud-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-score {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+}
+
+.hud-track {
+  font-size: 12px;
+  color: var(--accent);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-epoch {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.hud-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.hud-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent);
+}
+
+/* ---------- Music Bar ---------- */
+.music-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: var(--bar-bg);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  height: 48px;
+}
+
+.music-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.music-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.music-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+}
+
+#play-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+}
+
+#play-btn:hover {
+  transform: scale(1.1);
+}
+
+.music-progress {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.music-seek {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.music-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+}
+
+.music-volume {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.music-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-vol::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+/* ---------- Track Overlay ---------- */
+.track-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.track-overlay.visible {
+  display: flex;
+}
+
+.track-list-panel {
+  background: rgba(15, 15, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.track-list-panel .track-entry {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+
+.track-list-panel .track-entry:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.track-list-panel .track-entry.active {
+  color: var(--accent);
+  background: rgba(100, 180, 255, 0.08);
+}
+
+/* ---------- Pause Overlay ---------- */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 16, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.pause-overlay h2 {
+  font-size: 36px;
+  letter-spacing: 0.2em;
+  margin-bottom: 16px;
+}
+
+.pause-overlay p {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .hud {
+    padding: 4px 8px;
+  }
+  .hud-score {
+    font-size: 18px;
+  }
+  .hud-track {
+    max-width: 100px;
+    font-size: 10px;
+  }
+  .music-bar {
+    padding: 4px 8px;
+    gap: 6px;
+    height: 40px;
+  }
+  .music-vol {
+    display: none;
+  }
+  .music-volume {
+    display: none;
+  }
+  .music-time {
+    font-size: 10px;
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 400px) {
+  #prev-btn, #next-btn {
+    display: none;
+  }
+}
+
+</style>
+</head>
+<body>
+  <!-- Title Screen -->
+  <div id="title-screen" class="screen active">
+    <div class="title-content">
+      <h1 class="title-text">COSMIC RUNNER</h1>
+      <p class="subtitle">In The Beginning Phase 0</p>
+      <div class="title-aki" id="title-aki"></div>
+      <button class="start-btn" id="start-btn">START</button>
+      <p class="controls-hint">SPACE / TAP to jump &bull; Music plays automatically</p>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="screen">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD overlay -->
+    <div class="hud">
+      <div class="hud-left">
+        <span class="hud-score" id="hud-score">0</span>
+        <span class="hud-label">DISTANCE</span>
+      </div>
+      <div class="hud-center">
+        <span class="hud-track" id="hud-track"></span>
+        <span class="hud-epoch" id="hud-epoch"></span>
+      </div>
+      <div class="hud-right">
+        <button class="hud-btn" id="pause-btn" title="Pause">&#9646;&#9646;</button>
+        <button class="hud-btn" id="mute-btn" title="Mute">&#128266;</button>
+      </div>
+    </div>
+
+    <!-- Music player bar (bottom) -->
+    <div class="music-bar" id="music-bar">
+      <div class="music-controls">
+        <button class="music-btn" id="prev-btn" title="Previous">&#9198;</button>
+        <button class="music-btn" id="play-btn" title="Play/Pause">&#9654;</button>
+        <button class="music-btn" id="next-btn" title="Next">&#9197;</button>
+      </div>
+      <div class="music-progress">
+        <input type="range" class="music-seek" id="music-seek" min="0" max="100" value="0" step="0.1">
+        <span class="music-time" id="music-time">0:00 / 0:00</span>
+      </div>
+      <div class="music-volume">
+        <input type="range" class="music-vol" id="music-vol" min="0" max="100" value="80">
+      </div>
+    </div>
+  </div>
+
+  <!-- Track list overlay (toggleable) -->
+  <div class="track-overlay" id="track-overlay">
+    <div class="track-list-panel" id="track-list-panel"></div>
+  </div>
+
+  <!-- Scripts -->
+<script>
+// === js/background.js ===
+/**
+ * Background renderer for Cosmic Runner.
+ *
+ * Draws a muted 64x64 grid visualization in the background,
+ * plus a parallax starfield. The grid reacts to music note events
+ * but is rendered at low opacity so it doesn't overwhelm the
+ * foreground game elements.
+ */
+
+/**
+ * Background manages the starfield and muted grid layers.
+ */
+class Background {
+  /**
+   * @param {number} width - Canvas width.
+   * @param {number} height - Canvas height.
+   */
+  constructor(width, height) {
+    /** @type {number} */
+    this.width = width;
+    /** @type {number} */
+    this.height = height;
+
+    /** @type {number} Grid size (64x64) */
+    this.gridSize = 64;
+
+    /** @type {Float32Array} Cell brightness values (0-1) */
+    this.cells = new Float32Array(this.gridSize * this.gridSize);
+
+    /** @type {Float32Array} Cell hue values (0-360) */
+    this.cellHues = new Float32Array(this.gridSize * this.gridSize);
+
+    /** @type {Float32Array} Cell saturation values (0-100) */
+    this.cellSats = new Float32Array(this.gridSize * this.gridSize);
+
+    /** @type {number} Global hue offset for color shifts */
+    this.hueOffset = 0;
+
+    /** @type {number} Grid opacity (0-1), kept very low for muted effect */
+    this.gridOpacity = 0.12;
+
+    /** @type {Array<{x: number, y: number, size: number, speed: number, brightness: number}>} */
+    this.stars = [];
+
+    /** @type {number} Scroll offset for parallax */
+    this.scrollX = 0;
+
+    this._initStars();
+  }
+
+  /**
+   * Initialize the starfield with random positions.
+   * @private
+   */
+  _initStars() {
+    const count = 120;
+    for (let i = 0; i < count; i++) {
+      this.stars.push({
+        x: Math.random() * this.width * 2,
+        y: Math.random() * this.height,
+        size: 0.5 + Math.random() * 2,
+        speed: 0.1 + Math.random() * 0.5,
+        brightness: 0.3 + Math.random() * 0.7
+      });
+    }
+  }
+
+  /**
+   * Resize the background to match new canvas dimensions.
+   * @param {number} width
+   * @param {number} height
+   */
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+    // Redistribute stars for new dimensions
+    for (const star of this.stars) {
+      star.y = Math.random() * height;
+    }
+  }
+
+  /**
+   * Update grid cells from music note events.
+   * Events are in the same format as the visualizer:
+   * {note, inst, vel, ch}
+   * @param {Array<Object>} events - Active note events.
+   * @param {number} hueOffset - Current hue offset from music sync.
+   */
+  updateFromMusic(events, hueOffset) {
+    // Decay existing cells
+    for (let i = 0; i < this.cells.length; i++) {
+      this.cells[i] *= 0.92;
+    }
+
+    this.hueOffset = hueOffset;
+
+    // Map events to grid cells
+    for (const ev of events) {
+      const note = ev.note || 60;
+      const vel = ev.vel || 0.5;
+      const ch = ev.ch !== undefined ? ev.ch : 0;
+
+      // Row: pitch mapping (MIDI 24-87 -> rows 0-63)
+      const row = Math.max(0, Math.min(63, 87 - Math.max(24, Math.min(87, note))));
+      // Column: channel-based
+      const col = ch % this.gridSize;
+      const idx = row * this.gridSize + col;
+
+      this.cells[idx] = Math.min(1, vel);
+      this.cellHues[idx] = (this._instrumentHue(ev.inst) + hueOffset) % 360;
+      this.cellSats[idx] = 60 + vel * 40;
+    }
+  }
+
+  /**
+   * Get a base hue for an instrument name.
+   * @param {string} inst
+   * @returns {number} Hue in degrees.
+   * @private
+   */
+  _instrumentHue(inst) {
+    if (!inst) return 200;
+    const name = inst.toLowerCase();
+    if (name.includes('violin') || name.includes('cello') || name.includes('string')) return 0;
+    if (name.includes('piano') || name.includes('key') || name.includes('organ')) return 220;
+    if (name.includes('flute') || name.includes('oboe') || name.includes('wind') || name.includes('trumpet')) return 120;
+    if (name.includes('drum') || name.includes('perc') || name.includes('timpani')) return 50;
+    if (name.includes('synth') || name.includes('pad')) return 180;
+    return 200;
+  }
+
+  /**
+   * Update starfield scroll position.
+   * @param {number} gameSpeed - Current game speed multiplier.
+   * @param {number} dt - Delta time in seconds.
+   */
+  update(gameSpeed, dt) {
+    this.scrollX += gameSpeed * 30 * dt;
+
+    for (const star of this.stars) {
+      star.x -= star.speed * gameSpeed * 60 * dt;
+      if (star.x < -4) {
+        star.x = this.width + Math.random() * 100;
+        star.y = Math.random() * this.height;
+      }
+    }
+  }
+
+  /**
+   * Render the background layers to a canvas context.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  render(ctx) {
+    // 1. Deep space background
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // 2. Starfield
+    for (const star of this.stars) {
+      const alpha = star.brightness * 0.6;
+      ctx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3. Muted 64x64 grid
+    this._renderGrid(ctx);
+  }
+
+  /**
+   * Render the muted grid overlay.
+   * @param {CanvasRenderingContext2D} ctx
+   * @private
+   */
+  _renderGrid(ctx) {
+    const cellW = this.width / this.gridSize;
+    const cellH = this.height / this.gridSize;
+
+    ctx.save();
+    ctx.globalAlpha = this.gridOpacity;
+
+    for (let row = 0; row < this.gridSize; row++) {
+      for (let col = 0; col < this.gridSize; col++) {
+        const idx = row * this.gridSize + col;
+        const brightness = this.cells[idx];
+        if (brightness < 0.01) continue;
+
+        const hue = this.cellHues[idx];
+        const sat = this.cellSats[idx];
+        const light = 20 + brightness * 40;
+
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${brightness})`;
+        ctx.fillRect(col * cellW, row * cellH, cellW - 0.5, cellH - 0.5);
+
+        // Subtle glow for bright cells
+        if (brightness > 0.6) {
+          ctx.shadowColor = `hsl(${hue}, ${sat}%, ${light}%)`;
+          ctx.shadowBlur = 8;
+          ctx.fillRect(col * cellW, row * cellH, cellW - 0.5, cellH - 0.5);
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Set the grid opacity level.
+   * @param {number} opacity - 0 to 1, default 0.12.
+   */
+  setGridOpacity(opacity) {
+    this.gridOpacity = Math.max(0, Math.min(1, opacity));
+  }
+}
+
+;
+}
+
+// === js/runner.js ===
+/**
+ * Aki — the cosmic runner character.
+ *
+ * A pixel-art cosmic entity that runs, jumps, and blasts through obstacles.
+ * Morphs shape and color at musical epoch transitions.
+ */
+
+/** Epoch-based character forms. Each has a distinct pixel pattern and color. */
+const AKI_FORMS = [
+  { name: 'Nebula Spark',  color: '#4af',  accent: '#8cf',  shape: 'spark' },
+  { name: 'Star Fragment', color: '#fa4',  accent: '#fc8',  shape: 'crystal' },
+  { name: 'Quantum Pulse', color: '#a4f',  accent: '#c8f',  shape: 'pulse' },
+  { name: 'DNA Strand',    color: '#4fa',  accent: '#8fc',  shape: 'helix' },
+  { name: 'Dark Matter',   color: '#f4a',  accent: '#f8c',  shape: 'void' },
+  { name: 'Photon Burst',  color: '#ff4',  accent: '#ff8',  shape: 'burst' },
+];
+
+/**
+ * Runner is the player character.
+ */
+class Runner {
+  /**
+   * @param {number} groundY - Y position of the ground line.
+   */
+  constructor(groundY) {
+    /** @type {number} */
+    this.x = 80;
+
+    /** @type {number} */
+    this.y = groundY;
+
+    /** @type {number} Character width */
+    this.w = 28;
+
+    /** @type {number} Character height */
+    this.h = 32;
+
+    /** @type {number} Y velocity */
+    this.vy = 0;
+
+    /** @type {number} Gravity */
+    this.gravity = 1800;
+
+    /** @type {number} Jump velocity */
+    this.jumpPower = -620;
+
+    /** @type {boolean} Whether on ground */
+    this.grounded = true;
+
+    /** @type {number} Ground Y position */
+    this.groundY = groundY;
+
+    /** @type {number} Current form index */
+    this.formIndex = 0;
+
+    /** @type {number} Animation frame counter */
+    this.animFrame = 0;
+
+    /** @type {number} Run animation timer */
+    this.runTimer = 0;
+
+    /** @type {number} Morph transition progress (0-1) */
+    this.morphProgress = 1;
+
+    /** @type {number} Previous form index (for morph transition) */
+    this.prevFormIndex = 0;
+
+    /** @type {boolean} Whether the character is invulnerable (blast effect) */
+    this.blasting = false;
+
+    /** @type {number} Blast timer */
+    this.blastTimer = 0;
+
+    /** @type {number} Trail effect counter */
+    this.trailTimer = 0;
+
+    /** @type {Array<{x: number, y: number, alpha: number, hue: number}>} Trail particles */
+    this.trail = [];
+
+    /** @type {number} Squash/stretch for landing effect */
+    this.squash = 1;
+  }
+
+  /**
+   * Trigger a jump if the character is on the ground.
+   */
+  jump() {
+    if (this.grounded) {
+      this.vy = this.jumpPower;
+      this.grounded = false;
+      this.squash = 1.3; // Stretch on jump
+    }
+  }
+
+  /**
+   * Morph to a new character form.
+   * @param {number} formIndex - Index into AKI_FORMS.
+   */
+  morph(formIndex) {
+    if (formIndex === this.formIndex) return;
+    this.prevFormIndex = this.formIndex;
+    this.formIndex = formIndex % AKI_FORMS.length;
+    this.morphProgress = 0;
+  }
+
+  /**
+   * Trigger blast-through effect (when hitting an obstacle).
+   */
+  blast() {
+    this.blasting = true;
+    this.blastTimer = 0.3;
+
+    // Spawn blast particles
+    const form = AKI_FORMS[this.formIndex];
+    for (let i = 0; i < 8; i++) {
+      this.trail.push({
+        x: this.x + this.w / 2 + (Math.random() - 0.5) * 20,
+        y: this.y - this.h / 2 + (Math.random() - 0.5) * 20,
+        alpha: 1,
+        hue: this._parseHue(form.color)
+      });
+    }
+  }
+
+  /**
+   * Update character physics and animation.
+   * @param {number} dt - Delta time in seconds.
+   */
+  update(dt) {
+    // Gravity
+    if (!this.grounded) {
+      this.vy += this.gravity * dt;
+      this.y += this.vy * dt;
+
+      if (this.y >= this.groundY) {
+        this.y = this.groundY;
+        this.vy = 0;
+        this.grounded = true;
+        this.squash = 0.7; // Squash on land
+      }
+    }
+
+    // Squash/stretch recovery
+    this.squash += (1 - this.squash) * 8 * dt;
+
+    // Run animation
+    this.runTimer += dt;
+    this.animFrame = Math.floor(this.runTimer * 8) % 4;
+
+    // Morph transition
+    if (this.morphProgress < 1) {
+      this.morphProgress = Math.min(1, this.morphProgress + dt * 3);
+    }
+
+    // Blast timer
+    if (this.blasting) {
+      this.blastTimer -= dt;
+      if (this.blastTimer <= 0) {
+        this.blasting = false;
+      }
+    }
+
+    // Trail particles
+    this.trailTimer += dt;
+    if (this.trailTimer > 0.05) {
+      this.trailTimer = 0;
+      const form = AKI_FORMS[this.formIndex];
+      this.trail.push({
+        x: this.x + 4 + Math.random() * 6,
+        y: this.y - this.h / 2 + (Math.random() - 0.5) * this.h * 0.6,
+        alpha: 0.6,
+        hue: this._parseHue(form.color)
+      });
+    }
+
+    // Update trail
+    for (let i = this.trail.length - 1; i >= 0; i--) {
+      this.trail[i].alpha -= dt * 3;
+      this.trail[i].x -= dt * 40;
+      if (this.trail[i].alpha <= 0) {
+        this.trail.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Set the ground Y position (for resizing).
+   * @param {number} groundY
+   */
+  setGroundY(groundY) {
+    if (this.grounded) {
+      this.y = groundY;
+    }
+    this.groundY = groundY;
+  }
+
+  /**
+   * Get the bounding box for collision detection.
+   * @returns {{x: number, y: number, w: number, h: number}}
+   */
+  getBounds() {
+    return {
+      x: this.x + 4,
+      y: this.y - this.h + 4,
+      w: this.w - 8,
+      h: this.h - 8
+    };
+  }
+
+  /**
+   * Render the character to a canvas context.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  render(ctx) {
+    const form = AKI_FORMS[this.formIndex];
+    const cx = this.x + this.w / 2;
+    const cy = this.y - this.h / 2;
+
+    // Trail
+    for (const p of this.trail) {
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${p.alpha * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Squash/stretch
+    const sx = 2 - this.squash;
+    const sy = this.squash;
+    ctx.scale(sx, sy);
+
+    // Blast flash
+    if (this.blasting) {
+      ctx.shadowColor = '#fff';
+      ctx.shadowBlur = 20;
+    }
+
+    // Morph interpolation
+    let color = form.color;
+    let accent = form.accent;
+    if (this.morphProgress < 1) {
+      const prevForm = AKI_FORMS[this.prevFormIndex];
+      color = this._lerpColor(prevForm.color, form.color, this.morphProgress);
+      accent = this._lerpColor(prevForm.accent, form.accent, this.morphProgress);
+    }
+
+    // Draw character based on shape
+    this._drawShape(ctx, form.shape, color, accent);
+
+    // Eyes (always white dots)
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-5, -3, 2.5, 0, Math.PI * 2);
+    ctx.arc(5, -3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupils
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(-4, -3, 1.2, 0, Math.PI * 2);
+    ctx.arc(6, -3, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Run animation: legs
+    if (this.grounded) {
+      const legOffset = Math.sin(this.runTimer * 16) * 4;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-4, this.h / 2 - 6);
+      ctx.lineTo(-4 - legOffset, this.h / 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(4, this.h / 2 - 6);
+      ctx.lineTo(4 + legOffset, this.h / 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Glow aura
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * Draw the character body shape.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {string} shape
+   * @param {string} color
+   * @param {string} accent
+   * @private
+   */
+  _drawShape(ctx, shape, color, accent) {
+    const hw = this.w / 2;
+    const hh = this.h / 2;
+
+    switch (shape) {
+      case 'spark':
+        // Rounded rectangle body
+        ctx.fillStyle = color;
+        this._roundRect(ctx, -hw, -hh, this.w, this.h, 6);
+        ctx.fill();
+        // Inner highlight
+        ctx.fillStyle = accent;
+        this._roundRect(ctx, -hw + 4, -hh + 4, this.w - 8, this.h - 12, 4);
+        ctx.fill();
+        break;
+
+      case 'crystal':
+        // Diamond shape
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(0, -hh);
+        ctx.lineTo(hw, 0);
+        ctx.lineTo(0, hh);
+        ctx.lineTo(-hw, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.moveTo(0, -hh + 6);
+        ctx.lineTo(hw - 6, 0);
+        ctx.lineTo(0, hh - 6);
+        ctx.lineTo(-hw + 6, 0);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'pulse':
+        // Circle body with wave
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.min(hw, hh), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 2; a += 0.1) {
+          const r = Math.min(hw, hh) - 4 + Math.sin(a * 4 + this.runTimer * 8) * 3;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+
+      case 'helix':
+        // DNA-like twisted shape
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, hw, hh, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Double helix lines
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        for (let dy = -hh + 4; dy < hh - 4; dy += 4) {
+          const wave = Math.sin(dy * 0.3 + this.runTimer * 6) * 6;
+          ctx.fillStyle = accent;
+          ctx.beginPath();
+          ctx.arc(wave, dy, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(-wave, dy, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+
+      case 'void':
+        // Irregular blob
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 2; a += 0.3) {
+          const r = Math.min(hw, hh) + Math.sin(a * 3 + this.runTimer * 4) * 4;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        break;
+
+      case 'burst':
+        // Star burst
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+          const r = i % 2 === 0 ? Math.min(hw, hh) : Math.min(hw, hh) * 0.5;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      default:
+        ctx.fillStyle = color;
+        ctx.fillRect(-hw, -hh, this.w, this.h);
+    }
+  }
+
+  /**
+   * Draw a rounded rectangle path.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} x
+   * @param {number} y
+   * @param {number} w
+   * @param {number} h
+   * @param {number} r - Corner radius.
+   * @private
+   */
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  /**
+   * Parse a hex color to get approximate hue.
+   * @param {string} hex
+   * @returns {number} Hue in degrees.
+   * @private
+   */
+  _parseHue(hex) {
+    const r = parseInt(hex.slice(1, 2), 16) * 17;
+    const g = parseInt(hex.slice(2, 3), 16) * 17;
+    const b = parseInt(hex.slice(3, 4), 16) * 17;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    if (max === min) return 0;
+    let h;
+    if (max === r) h = (g - b) / (max - min);
+    else if (max === g) h = 2 + (b - r) / (max - min);
+    else h = 4 + (r - g) / (max - min);
+    h = ((h * 60) + 360) % 360;
+    return h;
+  }
+
+  /**
+   * Linearly interpolate between two hex colors.
+   * @param {string} c1
+   * @param {string} c2
+   * @param {number} t - 0 to 1.
+   * @returns {string} Interpolated hex color.
+   * @private
+   */
+  _lerpColor(c1, c2, t) {
+    const r1 = parseInt(c1.slice(1, 2), 16) * 17;
+    const g1 = parseInt(c1.slice(2, 3), 16) * 17;
+    const b1 = parseInt(c1.slice(3, 4), 16) * 17;
+    const r2 = parseInt(c2.slice(1, 2), 16) * 17;
+    const g2 = parseInt(c2.slice(2, 3), 16) * 17;
+    const b2 = parseInt(c2.slice(3, 4), 16) * 17;
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+}
+
+;
+}
+
+// === js/obstacles.js ===
+/**
+ * Obstacle generation and management for Cosmic Runner.
+ *
+ * Generates cosmic-themed obstacles that the player blasts through.
+ * Obstacle types correspond to album epochs/tracks.
+ */
+
+/** Obstacle type definitions. */
+const OBSTACLE_TYPES = [
+  { name: 'asteroid',     color: '#888',  accent: '#aaa',  minW: 24, maxW: 40, minH: 24, maxH: 40 },
+  { name: 'crystal',      color: '#4af',  accent: '#8cf',  minW: 16, maxW: 28, minH: 30, maxH: 50 },
+  { name: 'dark_cloud',   color: '#a4f',  accent: '#c8f',  minW: 40, maxW: 60, minH: 20, maxH: 35 },
+  { name: 'dna_helix',    color: '#4fa',  accent: '#8fc',  minW: 20, maxW: 30, minH: 35, maxH: 55 },
+  { name: 'star_shard',   color: '#fa4',  accent: '#fc8',  minW: 20, maxW: 35, minH: 20, maxH: 35 },
+  { name: 'plasma_rift',  color: '#f4a',  accent: '#f8c',  minW: 30, maxW: 50, minH: 25, maxH: 40 },
+  { name: 'frozen_chunk', color: '#4ff',  accent: '#8ff',  minW: 25, maxW: 40, minH: 25, maxH: 40 },
+  { name: 'nebula_wisp',  color: '#ff4',  accent: '#ff8',  minW: 35, maxW: 55, minH: 15, maxH: 30 },
+];
+
+/**
+ * A single obstacle in the game world.
+ */
+class Obstacle {
+  /**
+   * @param {number} x - X position (right edge of screen).
+   * @param {number} groundY - Ground Y position.
+   * @param {number} typeIndex - Index into OBSTACLE_TYPES.
+   * @param {number} gameSpeed - Current game speed for sizing.
+   */
+  constructor(x, groundY, typeIndex, gameSpeed) {
+    const type = OBSTACLE_TYPES[typeIndex % OBSTACLE_TYPES.length];
+
+    /** @type {string} */
+    this.typeName = type.name;
+
+    /** @type {string} */
+    this.color = type.color;
+
+    /** @type {string} */
+    this.accent = type.accent;
+
+    /** @type {number} */
+    this.w = type.minW + Math.random() * (type.maxW - type.minW);
+
+    /** @type {number} */
+    this.h = type.minH + Math.random() * (type.maxH - type.minH);
+
+    /** @type {number} */
+    this.x = x;
+
+    /** @type {number} Obstacle sits on the ground */
+    this.y = groundY - this.h;
+
+    /** @type {boolean} Whether the obstacle has been blasted */
+    this.blasted = false;
+
+    /** @type {number} Blast animation timer */
+    this.blastTimer = 0;
+
+    /** @type {Array<{x: number, y: number, vx: number, vy: number, alpha: number, size: number}>} */
+    this.particles = [];
+
+    /** @type {number} Animation phase offset */
+    this.phase = Math.random() * Math.PI * 2;
+
+    /** @type {number} Whether this is a floating obstacle */
+    this.floating = Math.random() < 0.2;
+
+    if (this.floating) {
+      this.y = groundY - this.h - 40 - Math.random() * 60;
+    }
+  }
+
+  /**
+   * Update the obstacle position and animations.
+   * @param {number} dt - Delta time in seconds.
+   * @param {number} speed - Current scroll speed in px/s.
+   */
+  update(dt, speed) {
+    this.x -= speed * dt;
+    this.phase += dt * 2;
+
+    if (this.blasted) {
+      this.blastTimer += dt;
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const p = this.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 400 * dt; // gravity on particles
+        p.alpha -= dt * 2.5;
+        if (p.alpha <= 0) {
+          this.particles.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  /**
+   * Trigger the blast-through effect.
+   */
+  blast() {
+    this.blasted = true;
+    this.blastTimer = 0;
+    // Spawn debris particles
+    for (let i = 0; i < 12; i++) {
+      this.particles.push({
+        x: this.x + this.w / 2,
+        y: this.y + this.h / 2,
+        vx: (Math.random() - 0.3) * 300,
+        vy: -100 - Math.random() * 200,
+        alpha: 1,
+        size: 2 + Math.random() * 4
+      });
+    }
+  }
+
+  /**
+   * Check if this obstacle is off-screen (left side).
+   * @returns {boolean}
+   */
+  isOffScreen() {
+    if (this.blasted) {
+      return this.particles.length === 0 && this.blastTimer > 0.5;
+    }
+    return this.x + this.w < -20;
+  }
+
+  /**
+   * Get the bounding box for collision detection.
+   * @returns {{x: number, y: number, w: number, h: number}}
+   */
+  getBounds() {
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+
+  /**
+   * Render the obstacle to a canvas context.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  render(ctx) {
+    // Blast particles
+    if (this.blasted) {
+      for (const p of this.particles) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = this.color.replace(')', `, ${p.alpha * 0.6})`).replace('rgb', 'rgba').replace('#', '');
+        // Use hex color with alpha
+        ctx.globalAlpha = p.alpha * 0.6;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
+
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+
+    // Glow
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = this.color;
+
+    switch (this.typeName) {
+      case 'asteroid':
+        this._drawAsteroid(ctx, cx, cy);
+        break;
+      case 'crystal':
+        this._drawCrystal(ctx, cx, cy);
+        break;
+      case 'dark_cloud':
+        this._drawCloud(ctx, cx, cy);
+        break;
+      case 'dna_helix':
+        this._drawHelix(ctx, cx, cy);
+        break;
+      case 'star_shard':
+        this._drawStarShard(ctx, cx, cy);
+        break;
+      case 'plasma_rift':
+        this._drawPlasmaRift(ctx, cx, cy);
+        break;
+      case 'frozen_chunk':
+        this._drawFrozenChunk(ctx, cx, cy);
+        break;
+      case 'nebula_wisp':
+        this._drawNebulaWisp(ctx, cx, cy);
+        break;
+      default:
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+
+    ctx.restore();
+
+    // Solid body
+    ctx.fillStyle = this.color;
+    switch (this.typeName) {
+      case 'asteroid':
+        this._drawAsteroid(ctx, cx, cy);
+        break;
+      case 'crystal':
+        this._drawCrystal(ctx, cx, cy);
+        break;
+      case 'dark_cloud':
+        this._drawCloud(ctx, cx, cy);
+        break;
+      case 'dna_helix':
+        this._drawHelix(ctx, cx, cy);
+        break;
+      case 'star_shard':
+        this._drawStarShard(ctx, cx, cy);
+        break;
+      case 'plasma_rift':
+        this._drawPlasmaRift(ctx, cx, cy);
+        break;
+      case 'frozen_chunk':
+        this._drawFrozenChunk(ctx, cx, cy);
+        break;
+      case 'nebula_wisp':
+        this._drawNebulaWisp(ctx, cx, cy);
+        break;
+      default:
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+
+    // Accent highlight
+    ctx.fillStyle = this.accent;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx - this.w * 0.15, cy - this.h * 0.15, Math.min(this.w, this.h) * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  /** @private */
+  _drawAsteroid(ctx, cx, cy) {
+    ctx.beginPath();
+    const r = Math.min(this.w, this.h) / 2;
+    for (let a = 0; a < Math.PI * 2; a += 0.5) {
+      const rr = r * (0.8 + Math.sin(a * 3 + this.phase) * 0.2);
+      const px = cx + Math.cos(a) * rr;
+      const py = cy + Math.sin(a) * rr;
+      a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** @private */
+  _drawCrystal(ctx, cx, cy) {
+    ctx.beginPath();
+    ctx.moveTo(cx, this.y);
+    ctx.lineTo(cx + this.w / 2, cy);
+    ctx.lineTo(cx + this.w / 3, this.y + this.h);
+    ctx.lineTo(cx - this.w / 3, this.y + this.h);
+    ctx.lineTo(cx - this.w / 2, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** @private */
+  _drawCloud(ctx, cx, cy) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.ellipse(cx - this.w * 0.2, cy - this.h * 0.1, this.w * 0.3, this.h * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  /** @private */
+  _drawHelix(ctx, cx, cy) {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = this.color;
+    ctx.beginPath();
+    for (let dy = 0; dy < this.h; dy += 2) {
+      const wave = Math.sin((dy + this.phase * 10) * 0.15) * this.w * 0.4;
+      ctx.lineTo(cx + wave, this.y + dy);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = this.accent;
+    ctx.beginPath();
+    for (let dy = 0; dy < this.h; dy += 2) {
+      const wave = Math.sin((dy + this.phase * 10) * 0.15 + Math.PI) * this.w * 0.4;
+      ctx.lineTo(cx + wave, this.y + dy);
+    }
+    ctx.stroke();
+  }
+
+  /** @private */
+  _drawStarShard(ctx, cx, cy) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      const r = i % 2 === 0 ? Math.min(this.w, this.h) / 2 : Math.min(this.w, this.h) / 4;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** @private */
+  _drawPlasmaRift(ctx, cx, cy) {
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 2; a += 0.3) {
+      const r = Math.min(this.w, this.h) / 2 * (0.7 + Math.sin(a * 5 + this.phase) * 0.3);
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** @private */
+  _drawFrozenChunk(ctx, cx, cy) {
+    // Hexagonal chunk
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const r = Math.min(this.w, this.h) / 2;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** @private */
+  _drawNebulaWisp(ctx, cx, cy) {
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, this.w / 2, this.h / 2, Math.sin(this.phase) * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.ellipse(cx + this.w * 0.1, cy, this.w * 0.3, this.h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/**
+ * ObstacleManager handles obstacle spawning and lifecycle.
+ */
+class ObstacleManager {
+  /**
+   * @param {number} screenWidth
+   * @param {number} groundY
+   */
+  constructor(screenWidth, groundY) {
+    /** @type {Obstacle[]} */
+    this.obstacles = [];
+
+    /** @type {number} */
+    this.screenWidth = screenWidth;
+
+    /** @type {number} */
+    this.groundY = groundY;
+
+    /** @type {number} Time until next spawn */
+    this.spawnTimer = 2;
+
+    /** @type {number} Min time between spawns */
+    this.spawnInterval = 1.5;
+
+    /** @type {number} Current obstacle type bias (changes with track) */
+    this.typeBias = 0;
+
+    /** @type {number} Total obstacles spawned */
+    this.totalSpawned = 0;
+  }
+
+  /**
+   * Resize the manager for new screen dimensions.
+   * @param {number} screenWidth
+   * @param {number} groundY
+   */
+  resize(screenWidth, groundY) {
+    this.screenWidth = screenWidth;
+    this.groundY = groundY;
+  }
+
+  /**
+   * Set the obstacle type bias (0-7) based on current track.
+   * @param {number} bias
+   */
+  setTypeBias(bias) {
+    this.typeBias = bias % OBSTACLE_TYPES.length;
+  }
+
+  /**
+   * Update all obstacles and spawn new ones.
+   * @param {number} dt - Delta time in seconds.
+   * @param {number} gameSpeed - Current game speed multiplier.
+   * @param {number} scrollSpeed - Pixels per second.
+   */
+  update(dt, gameSpeed, scrollSpeed) {
+    // Spawn timer
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0) {
+      this._spawn(gameSpeed);
+      // Randomize next spawn interval
+      this.spawnTimer = this.spawnInterval * (0.6 + Math.random() * 0.8) / Math.max(0.5, gameSpeed);
+    }
+
+    // Update existing obstacles
+    for (let i = this.obstacles.length - 1; i >= 0; i--) {
+      this.obstacles[i].update(dt, scrollSpeed);
+      if (this.obstacles[i].isOffScreen()) {
+        this.obstacles.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Spawn a new obstacle.
+   * @param {number} gameSpeed
+   * @private
+   */
+  _spawn(gameSpeed) {
+    // Bias toward current track's type, but allow variety
+    let typeIdx = this.typeBias;
+    if (Math.random() < 0.4) {
+      typeIdx = Math.floor(Math.random() * OBSTACLE_TYPES.length);
+    }
+
+    const obs = new Obstacle(
+      this.screenWidth + 20,
+      this.groundY,
+      typeIdx,
+      gameSpeed
+    );
+    this.obstacles.push(obs);
+    this.totalSpawned++;
+  }
+
+  /**
+   * Check collision between runner and all obstacles.
+   * @param {{x: number, y: number, w: number, h: number}} runnerBounds
+   * @returns {Obstacle|null} The obstacle that was hit, or null.
+   */
+  checkCollision(runnerBounds) {
+    for (const obs of this.obstacles) {
+      if (obs.blasted) continue;
+      const ob = obs.getBounds();
+      if (
+        runnerBounds.x < ob.x + ob.w &&
+        runnerBounds.x + runnerBounds.w > ob.x &&
+        runnerBounds.y < ob.y + ob.h &&
+        runnerBounds.y + runnerBounds.h > ob.y
+      ) {
+        return obs;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Render all obstacles.
+   * @param {CanvasRenderingContext2D} ctx
+   */
+  render(ctx) {
+    for (const obs of this.obstacles) {
+      obs.render(ctx);
+    }
+  }
+}
+
+;
+}
+
+// === js/music-sync.js ===
+/**
+ * Music synchronization for Cosmic Runner.
+ *
+ * Loads score JSON files, tracks current playback position,
+ * and provides note events and epoch information to the game.
+ */
+
+/**
+ * MusicSync manages score data and provides time-based lookups.
+ */
+class MusicSync {
+  constructor() {
+    /** @type {Object|null} Raw album data */
+    this.albumData = null;
+
+    /** @type {Array<Object>} Track metadata */
+    this.tracks = [];
+
+    /** @type {Map<number, Array<Object>>} Track index -> loaded events */
+    this.trackEvents = new Map();
+
+    /** @type {number} Current track index */
+    this.currentTrack = 0;
+
+    /** @type {number} Current hue offset */
+    this.hueOffset = 0;
+
+    /** @type {number} Last hue shift time */
+    this._lastHueShift = 0;
+
+    /** @type {number} Hue shift interval in seconds */
+    this.hueShiftInterval = 120;
+
+    /** @type {string} Base URL for loading track note files */
+    this.baseUrl = '';
+  }
+
+  /**
+   * Load the album notes JSON.
+   * @param {string} url - URL to album_notes.json.
+   * @returns {Promise<boolean>} Whether loading succeeded.
+   */
+  async loadAlbum(url) {
+    try {
+      // Derive base URL from album_notes.json path
+      this.baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+
+      const resp = await fetch(url);
+      if (!resp.ok) return false;
+      this.albumData = await resp.json();
+
+      this.tracks = (this.albumData.tracks || []).map((t, i) => ({
+        index: i,
+        trackNum: t.track_num || (i + 1),
+        title: this._titleFromFile(t.file),
+        file: t.file,
+        duration: t.duration || 0,
+        startTime: t.start_time || 0,
+        nEvents: t.n_events || 0,
+        audioFile: this._audioFileFromNotes(t.file)
+      }));
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Load note events for a specific track.
+   * @param {number} trackIndex
+   * @returns {Promise<Array<Object>>} The loaded events.
+   */
+  async loadTrackEvents(trackIndex) {
+    if (this.trackEvents.has(trackIndex)) {
+      return this.trackEvents.get(trackIndex);
+    }
+
+    const track = this.tracks[trackIndex];
+    if (!track || !track.file) return [];
+
+    try {
+      const resp = await fetch(this.baseUrl + track.file);
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const events = data.events || [];
+      this.trackEvents.set(trackIndex, events);
+      return events;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Get active note events at a given time within the current track.
+   * @param {number} time - Current playback time in seconds.
+   * @returns {Array<Object>} Active events.
+   */
+  getActiveEvents(time) {
+    const events = this.trackEvents.get(this.currentTrack);
+    if (!events || events.length === 0) return [];
+
+    const active = [];
+    for (const ev of events) {
+      if (ev.t <= time && ev.t + ev.dur > time) {
+        active.push(ev);
+      }
+    }
+    return active;
+  }
+
+  /**
+   * Get the current epoch name based on time position.
+   * Maps to cosmic eras for character morphing.
+   * @param {number} time - Current playback time.
+   * @param {number} duration - Total track duration.
+   * @returns {{name: string, index: number}}
+   */
+  getEpoch(time, duration) {
+    if (duration <= 0) return { name: 'Quantum Dawn', index: 0 };
+    const progress = time / duration;
+    const epochs = [
+      'Quantum Dawn',
+      'Stellar Birth',
+      'Cosmic Expansion',
+      'Dark Energy',
+      'Nebula Phase',
+      'Emergence'
+    ];
+    const idx = Math.min(epochs.length - 1, Math.floor(progress * epochs.length));
+    return { name: epochs[idx], index: idx };
+  }
+
+  /**
+   * Update hue offset based on time.
+   * @param {number} time
+   */
+  updateHue(time) {
+    const shiftCount = Math.floor(time / this.hueShiftInterval);
+    if (shiftCount > this._lastHueShift) {
+      this._lastHueShift = shiftCount;
+      this.hueOffset = (this.hueOffset + 30 + Math.random() * 30) % 360;
+    }
+  }
+
+  /**
+   * Get the current music intensity (0-1) based on active events.
+   * @param {number} time
+   * @returns {number}
+   */
+  getIntensity(time) {
+    const events = this.getActiveEvents(time);
+    if (events.length === 0) return 0.1;
+    const avgVel = events.reduce((sum, e) => sum + (e.vel || 0.5), 0) / events.length;
+    const density = Math.min(1, events.length / 15);
+    return Math.min(1, avgVel * 0.6 + density * 0.4);
+  }
+
+  /**
+   * Get the audio file URL for a track.
+   * @param {number} trackIndex
+   * @returns {string}
+   */
+  getAudioUrl(trackIndex) {
+    const track = this.tracks[trackIndex];
+    if (!track) return '';
+    return this.baseUrl + track.audioFile;
+  }
+
+  /**
+   * Extract a track title from a notes filename.
+   * @param {string} filename
+   * @returns {string}
+   * @private
+   */
+  _titleFromFile(filename) {
+    if (!filename) return 'Unknown';
+    // e.g., "In_The_Beginning_Phase_0-aiphenomenon-01-Bright_Nebula_notes.json"
+    const match = filename.match(/-(\d+)-(.+?)_notes\.json$/);
+    if (match) {
+      return match[2].replace(/_/g, ' ');
+    }
+    return filename.replace(/_notes\.json$/, '').replace(/_/g, ' ');
+  }
+
+  /**
+   * Derive audio filename from notes filename.
+   * @param {string} notesFile
+   * @returns {string}
+   * @private
+   */
+  _audioFileFromNotes(notesFile) {
+    if (!notesFile) return '';
+    return notesFile.replace('_notes.json', '.mp3');
+  }
+
+  /**
+   * Get the total number of tracks.
+   * @returns {number}
+   */
+  getTrackCount() {
+    return this.tracks.length;
+  }
+
+  /**
+   * Get track info by index.
+   * @param {number} index
+   * @returns {Object|null}
+   */
+  getTrack(index) {
+    return this.tracks[index] || null;
+  }
+}
+
+;
+}
+
+// === js/game.js ===
+/**
+ * Game Engine for Cosmic Runner.
+ *
+ * Manages the game loop, canvas rendering, physics, collision detection,
+ * and overall game state. Coordinates Background, Runner, and ObstacleManager.
+ */
+
+/**
+ * Game is the main game engine.
+ */
+class Game {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   */
+  constructor(canvas) {
+    /** @type {HTMLCanvasElement} */
+    this.canvas = canvas;
+
+    /** @type {CanvasRenderingContext2D} */
+    this.ctx = canvas.getContext('2d');
+
+    /** @type {number} */
+    this.width = 0;
+
+    /** @type {number} */
+    this.height = 0;
+
+    /** @type {number} Ground Y position (80% of screen height) */
+    this.groundY = 0;
+
+    /** @type {Background} */
+    this.background = null;
+
+    /** @type {Runner} */
+    this.runner = null;
+
+    /** @type {ObstacleManager} */
+    this.obstacles = null;
+
+    /** @type {number} Base game speed multiplier */
+    this.baseSpeed = 1;
+
+    /** @type {number} Current speed multiplier (increases with music intensity) */
+    this.speed = 1;
+
+    /** @type {number} Scroll speed in pixels per second */
+    this.scrollSpeed = 200;
+
+    /** @type {number} Distance traveled (score) */
+    this.distance = 0;
+
+    /** @type {number} Objects blasted count */
+    this.blastCount = 0;
+
+    /** @type {boolean} */
+    this.running = false;
+
+    /** @type {boolean} */
+    this.paused = false;
+
+    /** @type {number} Last frame timestamp */
+    this._lastTime = 0;
+
+    /** @type {number} Animation frame ID */
+    this._rafId = 0;
+
+    /** @type {Function|null} Callback for score updates */
+    this.onScoreUpdate = null;
+
+    /** @type {Function|null} Callback for blast events */
+    this.onBlast = null;
+
+    /** @type {Function|null} Callback for epoch changes */
+    this.onEpochChange = null;
+
+    /** @type {number} Current epoch index */
+    this._currentEpoch = -1;
+
+    /** @type {Array<Object>} Current music events for background */
+    this._musicEvents = [];
+
+    /** @type {number} Current hue offset */
+    this._hueOffset = 0;
+
+    // Ground platform segments for visual variety
+    /** @type {Array<{x: number, w: number, h: number, color: string}>} */
+    this._groundSegments = [];
+
+    this._resize();
+    this._initGround();
+
+    // Handle window resize
+    this._resizeHandler = () => this._resize();
+    window.addEventListener('resize', this._resizeHandler);
+  }
+
+  /**
+   * Resize canvas and game objects to match window.
+   * @private
+   */
+  _resize() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+    this.groundY = Math.floor(this.height * 0.78);
+
+    if (this.background) {
+      this.background.resize(this.width, this.height);
+    }
+    if (this.runner) {
+      this.runner.setGroundY(this.groundY);
+    }
+    if (this.obstacles) {
+      this.obstacles.resize(this.width, this.groundY);
+    }
+  }
+
+  /**
+   * Initialize ground platform visual segments.
+   * @private
+   */
+  _initGround() {
+    this._groundSegments = [];
+    for (let x = 0; x < 3000; x += 40 + Math.random() * 60) {
+      this._groundSegments.push({
+        x: x,
+        w: 30 + Math.random() * 50,
+        h: 3 + Math.random() * 5,
+        color: `rgba(${60 + Math.random() * 40}, ${80 + Math.random() * 40}, ${100 + Math.random() * 50}, 0.4)`
+      });
+    }
+  }
+
+  /**
+   * Initialize and start the game.
+   */
+  start() {
+    this.background = new Background(this.width, this.height);
+    this.runner = new Runner(this.groundY);
+    this.obstacles = new ObstacleManager(this.width, this.groundY);
+    this.distance = 0;
+    this.blastCount = 0;
+    this.speed = this.baseSpeed;
+    this.running = true;
+    this.paused = false;
+    this._lastTime = performance.now();
+    this._loop();
+  }
+
+  /**
+   * Pause the game.
+   */
+  pause() {
+    this.paused = true;
+  }
+
+  /**
+   * Resume the game.
+   */
+  resume() {
+    if (this.paused) {
+      this.paused = false;
+      this._lastTime = performance.now();
+      this._loop();
+    }
+  }
+
+  /**
+   * Toggle pause state.
+   * @returns {boolean} New paused state.
+   */
+  togglePause() {
+    if (this.paused) {
+      this.resume();
+    } else {
+      this.pause();
+    }
+    return this.paused;
+  }
+
+  /**
+   * Stop the game.
+   */
+  stop() {
+    this.running = false;
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = 0;
+    }
+  }
+
+  /**
+   * Handle jump input.
+   */
+  jump() {
+    if (!this.running || this.paused) return;
+    this.runner.jump();
+  }
+
+  /**
+   * Feed music events to the game for background visualization.
+   * @param {Array<Object>} events - Note events from MusicSync.
+   * @param {number} hueOffset - Current hue offset.
+   */
+  setMusicEvents(events, hueOffset) {
+    this._musicEvents = events;
+    this._hueOffset = hueOffset;
+  }
+
+  /**
+   * Set the music intensity (affects game speed).
+   * @param {number} intensity - 0 to 1.
+   */
+  setIntensity(intensity) {
+    this.speed = this.baseSpeed + intensity * 0.8;
+    this.scrollSpeed = 180 + intensity * 120;
+  }
+
+  /**
+   * Set the current epoch (triggers character morph).
+   * @param {number} epochIndex
+   * @param {string} epochName
+   */
+  setEpoch(epochIndex, epochName) {
+    if (epochIndex !== this._currentEpoch) {
+      this._currentEpoch = epochIndex;
+      this.runner.morph(epochIndex);
+      if (this.onEpochChange) {
+        this.onEpochChange(epochIndex, epochName);
+      }
+    }
+  }
+
+  /**
+   * Set obstacle type bias based on current track.
+   * @param {number} trackIndex
+   */
+  setTrackBias(trackIndex) {
+    this.obstacles.setTypeBias(trackIndex);
+  }
+
+  /**
+   * Main game loop.
+   * @private
+   */
+  _loop() {
+    if (!this.running || this.paused) return;
+
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this._lastTime) / 1000); // Cap at 50ms
+    this._lastTime = now;
+
+    this._update(dt);
+    this._render();
+
+    this._rafId = requestAnimationFrame(() => this._loop());
+  }
+
+  /**
+   * Update game state.
+   * @param {number} dt - Delta time in seconds.
+   * @private
+   */
+  _update(dt) {
+    // Update background
+    this.background.updateFromMusic(this._musicEvents, this._hueOffset);
+    this.background.update(this.speed, dt);
+
+    // Update runner
+    this.runner.update(dt);
+
+    // Update obstacles
+    this.obstacles.update(dt, this.speed, this.scrollSpeed);
+
+    // Update ground segments (scroll)
+    for (const seg of this._groundSegments) {
+      seg.x -= this.scrollSpeed * dt;
+      if (seg.x + seg.w < 0) {
+        seg.x = this.width + Math.random() * 200;
+        seg.w = 30 + Math.random() * 50;
+      }
+    }
+
+    // Check collisions
+    const hit = this.obstacles.checkCollision(this.runner.getBounds());
+    if (hit) {
+      hit.blast();
+      this.runner.blast();
+      this.blastCount++;
+      if (this.onBlast) {
+        this.onBlast(this.blastCount);
+      }
+    }
+
+    // Update distance
+    this.distance += this.scrollSpeed * dt;
+    if (this.onScoreUpdate) {
+      this.onScoreUpdate(Math.floor(this.distance / 10));
+    }
+  }
+
+  /**
+   * Render the game frame.
+   * @private
+   */
+  _render() {
+    const ctx = this.ctx;
+
+    // Background (muted grid + starfield)
+    this.background.render(ctx);
+
+    // Ground line
+    ctx.fillStyle = 'rgba(80, 120, 160, 0.3)';
+    ctx.fillRect(0, this.groundY, this.width, 2);
+
+    // Ground segments (subtle terrain)
+    for (const seg of this._groundSegments) {
+      ctx.fillStyle = seg.color;
+      ctx.fillRect(seg.x, this.groundY + 2, seg.w, seg.h);
+    }
+
+    // Ground fade
+    const groundGrad = ctx.createLinearGradient(0, this.groundY, 0, this.height);
+    groundGrad.addColorStop(0, 'rgba(20, 30, 50, 0.5)');
+    groundGrad.addColorStop(1, 'rgba(5, 5, 16, 0.9)');
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, this.groundY + 2, this.width, this.height - this.groundY);
+
+    // Obstacles
+    this.obstacles.render(ctx);
+
+    // Runner
+    this.runner.render(ctx);
+  }
+
+  /**
+   * Destroy the game and clean up resources.
+   */
+  destroy() {
+    this.stop();
+    window.removeEventListener('resize', this._resizeHandler);
+  }
+}
+
+;
+}
+
+// === js/player.js ===
+/**
+ * Audio Player for Cosmic Runner.
+ *
+ * Manages HTML5 Audio playback, track navigation, and UI updates.
+ * Integrates with MusicSync to provide note events to the game.
+ */
+
+/**
+ * GamePlayer handles audio playback and the music bar UI.
+ */
+class GamePlayer {
+  /**
+   * @param {MusicSync} musicSync - Music synchronization instance.
+   */
+  constructor(musicSync) {
+    /** @type {MusicSync} */
+    this.musicSync = musicSync;
+
+    /** @type {HTMLAudioElement} */
+    this.audio = new Audio();
+    this.audio.preload = 'auto';
+
+    /** @type {boolean} */
+    this.isPlaying = false;
+
+    /** @type {number} Current track index */
+    this.currentTrack = 0;
+
+    /** @type {number} */
+    this.volume = 0.8;
+    this.audio.volume = this.volume;
+
+    /** @type {number} Animation frame ID for time updates */
+    this._rafId = 0;
+
+    /** @type {boolean} */
+    this._seeking = false;
+
+    // UI elements (bound later)
+    /** @type {HTMLElement|null} */
+    this.playBtn = null;
+    /** @type {HTMLElement|null} */
+    this.prevBtn = null;
+    /** @type {HTMLElement|null} */
+    this.nextBtn = null;
+    /** @type {HTMLInputElement|null} */
+    this.seekBar = null;
+    /** @type {HTMLElement|null} */
+    this.timeDisplay = null;
+    /** @type {HTMLInputElement|null} */
+    this.volSlider = null;
+    /** @type {HTMLElement|null} */
+    this.muteBtn = null;
+
+    // Callbacks
+    /** @type {Function|null} */
+    this.onTimeUpdate = null;
+    /** @type {Function|null} */
+    this.onTrackChange = null;
+  }
+
+  /**
+   * Bind UI elements from the DOM.
+   */
+  bindUI() {
+    this.playBtn = document.getElementById('play-btn');
+    this.prevBtn = document.getElementById('prev-btn');
+    this.nextBtn = document.getElementById('next-btn');
+    this.seekBar = document.getElementById('music-seek');
+    this.timeDisplay = document.getElementById('music-time');
+    this.volSlider = document.getElementById('music-vol');
+    this.muteBtn = document.getElementById('mute-btn');
+
+    this._bindEvents();
+  }
+
+  /**
+   * Bind event listeners.
+   * @private
+   */
+  _bindEvents() {
+    if (this.playBtn) {
+      this.playBtn.addEventListener('click', () => this.togglePlay());
+    }
+    if (this.prevBtn) {
+      this.prevBtn.addEventListener('click', () => this.prevTrack());
+    }
+    if (this.nextBtn) {
+      this.nextBtn.addEventListener('click', () => this.nextTrack());
+    }
+
+    if (this.seekBar) {
+      this.seekBar.addEventListener('mousedown', () => { this._seeking = true; });
+      this.seekBar.addEventListener('touchstart', () => { this._seeking = true; });
+      this.seekBar.addEventListener('input', (e) => {
+        if (this._seeking) {
+          const pct = parseFloat(e.target.value) / 100;
+          this.audio.currentTime = pct * (this.audio.duration || 0);
+        }
+      });
+      this.seekBar.addEventListener('mouseup', () => { this._seeking = false; });
+      this.seekBar.addEventListener('touchend', () => { this._seeking = false; });
+    }
+
+    if (this.volSlider) {
+      this.volSlider.addEventListener('input', (e) => {
+        this.volume = parseInt(e.target.value) / 100;
+        this.audio.volume = this.volume;
+        this.audio.muted = false;
+        this._updateMuteIcon();
+      });
+    }
+
+    if (this.muteBtn) {
+      this.muteBtn.addEventListener('click', () => {
+        this.audio.muted = !this.audio.muted;
+        this._updateMuteIcon();
+      });
+    }
+
+    this.audio.addEventListener('ended', () => {
+      if (this.currentTrack < this.musicSync.getTrackCount() - 1) {
+        this.nextTrack();
+      } else {
+        // Loop back to first track
+        this.loadTrack(0);
+        this.play();
+      }
+    });
+  }
+
+  /**
+   * Load and play a specific track.
+   * @param {number} index
+   */
+  async loadTrack(index) {
+    if (index < 0 || index >= this.musicSync.getTrackCount()) return;
+
+    this.currentTrack = index;
+    this.musicSync.currentTrack = index;
+
+    const audioUrl = this.musicSync.getAudioUrl(index);
+    if (audioUrl) {
+      this.audio.src = audioUrl;
+      this.audio.load();
+    }
+
+    // Preload note events for this track
+    await this.musicSync.loadTrackEvents(index);
+
+    if (this.onTrackChange) {
+      this.onTrackChange(index);
+    }
+  }
+
+  /**
+   * Toggle play/pause.
+   */
+  togglePlay() {
+    if (this.isPlaying) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  /**
+   * Start or resume playback.
+   */
+  play() {
+    if (this.audio.src || this.audio.currentSrc) {
+      this.audio.play().catch(() => {});
+    }
+    this.isPlaying = true;
+    this._updatePlayIcon();
+    this._startTimeLoop();
+  }
+
+  /**
+   * Pause playback.
+   */
+  pause() {
+    this.audio.pause();
+    this.isPlaying = false;
+    this._updatePlayIcon();
+    this._stopTimeLoop();
+  }
+
+  /**
+   * Go to previous track.
+   */
+  prevTrack() {
+    if (this.currentTrack > 0) {
+      this.loadTrack(this.currentTrack - 1).then(() => {
+        if (this.isPlaying) this.play();
+      });
+    }
+  }
+
+  /**
+   * Go to next track.
+   */
+  nextTrack() {
+    if (this.currentTrack < this.musicSync.getTrackCount() - 1) {
+      this.loadTrack(this.currentTrack + 1).then(() => {
+        if (this.isPlaying) this.play();
+      });
+    }
+  }
+
+  /**
+   * Get current playback time.
+   * @returns {number}
+   */
+  getCurrentTime() {
+    return this.audio.currentTime || 0;
+  }
+
+  /**
+   * Get current track duration.
+   * @returns {number}
+   */
+  getDuration() {
+    return this.audio.duration || 0;
+  }
+
+  /**
+   * Update play button icon.
+   * @private
+   */
+  _updatePlayIcon() {
+    if (this.playBtn) {
+      this.playBtn.textContent = this.isPlaying ? '\u23F8' : '\u25B6';
+    }
+  }
+
+  /**
+   * Update mute button icon.
+   * @private
+   */
+  _updateMuteIcon() {
+    if (this.muteBtn) {
+      this.muteBtn.textContent = this.audio.muted ? '\u{1F507}' : '\u{1F50A}';
+    }
+  }
+
+  /**
+   * Start the time update animation loop.
+   * @private
+   */
+  _startTimeLoop() {
+    if (this._rafId) return;
+    const loop = () => {
+      this._updateTimeUI();
+      if (this.onTimeUpdate) {
+        this.onTimeUpdate(this.audio.currentTime);
+      }
+      this._rafId = requestAnimationFrame(loop);
+    };
+    this._rafId = requestAnimationFrame(loop);
+  }
+
+  /**
+   * Stop the time update loop.
+   * @private
+   */
+  _stopTimeLoop() {
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = 0;
+    }
+  }
+
+  /**
+   * Update the seek bar and time display.
+   * @private
+   */
+  _updateTimeUI() {
+    const current = this.audio.currentTime || 0;
+    const duration = this.audio.duration || 0;
+
+    if (this.seekBar && !this._seeking && duration > 0) {
+      this.seekBar.value = ((current / duration) * 100).toFixed(1);
+    }
+
+    if (this.timeDisplay) {
+      this.timeDisplay.textContent = `${GamePlayer.formatTime(current)} / ${GamePlayer.formatTime(duration)}`;
+    }
+  }
+
+  /**
+   * Format seconds as M:SS.
+   * @param {number} seconds
+   * @returns {string}
+   */
+  static formatTime(seconds) {
+    if (!isFinite(seconds) || seconds < 0) return '0:00';
+    const s = Math.floor(seconds);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  /**
+   * Destroy the player.
+   */
+  destroy() {
+    this._stopTimeLoop();
+    this.audio.pause();
+    this.audio.src = '';
+  }
+}
+
+;
+}
+
+// === js/app.js ===
+/**
+ * Main Application Controller for Cosmic Runner.
+ *
+ * Orchestrates the title screen, game engine, music player, and HUD.
+ * Handles input events (keyboard, touch, mouse) and screen transitions.
+ */
+
+/**
+ * CosmicRunnerApp is the top-level application controller.
+ */
+class CosmicRunnerApp {
+  constructor() {
+    /** @type {Game|null} */
+    this.game = null;
+
+    /** @type {GamePlayer|null} */
+    this.player = null;
+
+    /** @type {MusicSync} */
+    this.musicSync = new MusicSync();
+
+    /** @type {string} Current screen ('title' or 'game') */
+    this.screen = 'title';
+
+    /** @type {boolean} Whether music has been loaded */
+    this.musicLoaded = false;
+
+    // DOM references
+    /** @type {HTMLElement} */
+    this.titleScreen = null;
+    /** @type {HTMLElement} */
+    this.gameScreen = null;
+    /** @type {HTMLCanvasElement} */
+    this.canvas = null;
+
+    // HUD elements
+    /** @type {HTMLElement} */
+    this.hudScore = null;
+    /** @type {HTMLElement} */
+    this.hudTrack = null;
+    /** @type {HTMLElement} */
+    this.hudEpoch = null;
+
+    /** @type {HTMLElement|null} */
+    this.pauseOverlay = null;
+  }
+
+  /**
+   * Initialize the application.
+   */
+  async init() {
+    // Grab DOM elements
+    this.titleScreen = document.getElementById('title-screen');
+    this.gameScreen = document.getElementById('game-screen');
+    this.canvas = document.getElementById('game-canvas');
+    this.hudScore = document.getElementById('hud-score');
+    this.hudTrack = document.getElementById('hud-track');
+    this.hudEpoch = document.getElementById('hud-epoch');
+
+    // Start button
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => this._startGame());
+    }
+
+    // Pause button
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', () => this._togglePause());
+    }
+
+    // Input handlers
+    this._bindInput();
+
+    // Try to load album data
+    await this._loadMusic();
+  }
+
+  /**
+   * Attempt to load album music data.
+   * Tries multiple relative paths to find the album_notes.json.
+   * @private
+   */
+  async _loadMusic() {
+    const paths = [
+      'audio/album_notes.json',
+      '../audio/output/album/album_notes.json',
+      '../../apps/audio/output/album/album_notes.json',
+    ];
+
+    for (const path of paths) {
+      const loaded = await this.musicSync.loadAlbum(path);
+      if (loaded) {
+        this.musicLoaded = true;
+        break;
+      }
+    }
+
+    if (!this.musicLoaded) {
+      // No album found - game still works, just without music
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        startBtn.textContent = 'START (No Audio)';
+      }
+    }
+  }
+
+  /**
+   * Transition to the game screen and start playing.
+   * @private
+   */
+  async _startGame() {
+    // Switch screens
+    this.titleScreen.classList.remove('active');
+    this.gameScreen.classList.add('active');
+    this.screen = 'game';
+
+    // Initialize game engine
+    this.game = new Game(this.canvas);
+    this.game.onScoreUpdate = (score) => {
+      if (this.hudScore) this.hudScore.textContent = score;
+    };
+    this.game.onEpochChange = (idx, name) => {
+      if (this.hudEpoch) this.hudEpoch.textContent = name;
+    };
+    this.game.onBlast = (count) => {
+      // Visual feedback on blast (brief screen shake via CSS)
+      this.canvas.style.transform = `translateX(${(Math.random() - 0.5) * 6}px)`;
+      setTimeout(() => { this.canvas.style.transform = ''; }, 80);
+    };
+
+    this.game.start();
+
+    // Initialize music player
+    this.player = new GamePlayer(this.musicSync);
+    this.player.bindUI();
+    this.player.onTimeUpdate = (time) => this._onMusicTime(time);
+    this.player.onTrackChange = (idx) => this._onTrackChange(idx);
+
+    // Load first track and start playing
+    if (this.musicLoaded && this.musicSync.getTrackCount() > 0) {
+      await this.player.loadTrack(0);
+      this.player.play();
+      this._updateTrackDisplay(0);
+    }
+
+    // Build track list overlay
+    this._buildTrackList();
+  }
+
+  /**
+   * Handle music time updates — sync game with music.
+   * @param {number} time
+   * @private
+   */
+  _onMusicTime(time) {
+    if (!this.game || !this.game.running) return;
+
+    // Get active note events and feed to game background
+    const events = this.musicSync.getActiveEvents(time);
+    this.musicSync.updateHue(time);
+    this.game.setMusicEvents(events, this.musicSync.hueOffset);
+
+    // Music intensity affects game speed
+    const intensity = this.musicSync.getIntensity(time);
+    this.game.setIntensity(intensity);
+
+    // Epoch detection for character morphing
+    const duration = this.player.getDuration();
+    const epoch = this.musicSync.getEpoch(time, duration);
+    this.game.setEpoch(epoch.index, epoch.name);
+  }
+
+  /**
+   * Handle track changes.
+   * @param {number} trackIndex
+   * @private
+   */
+  _onTrackChange(trackIndex) {
+    this._updateTrackDisplay(trackIndex);
+    if (this.game) {
+      this.game.setTrackBias(trackIndex);
+    }
+    this._highlightTrackEntry(trackIndex);
+  }
+
+  /**
+   * Update the HUD track display.
+   * @param {number} trackIndex
+   * @private
+   */
+  _updateTrackDisplay(trackIndex) {
+    const track = this.musicSync.getTrack(trackIndex);
+    if (track && this.hudTrack) {
+      this.hudTrack.textContent = `${track.trackNum}. ${track.title}`;
+    }
+  }
+
+  /**
+   * Toggle pause state.
+   * @private
+   */
+  _togglePause() {
+    if (!this.game) return;
+
+    const paused = this.game.togglePause();
+    const pauseBtn = document.getElementById('pause-btn');
+
+    if (paused) {
+      if (this.player && this.player.isPlaying) {
+        this.player.pause();
+      }
+      if (pauseBtn) pauseBtn.textContent = '\u25B6';
+      this._showPauseOverlay();
+    } else {
+      if (this.player) {
+        this.player.play();
+      }
+      if (pauseBtn) pauseBtn.textContent = '\u23F8\u23F8';
+      this._hidePauseOverlay();
+    }
+  }
+
+  /**
+   * Show the pause overlay.
+   * @private
+   */
+  _showPauseOverlay() {
+    if (this.pauseOverlay) return;
+    this.pauseOverlay = document.createElement('div');
+    this.pauseOverlay.className = 'pause-overlay';
+    this.pauseOverlay.innerHTML = '<h2>PAUSED</h2><p>Press SPACE or tap to resume</p>';
+    this.pauseOverlay.addEventListener('click', () => this._togglePause());
+    document.body.appendChild(this.pauseOverlay);
+  }
+
+  /**
+   * Hide the pause overlay.
+   * @private
+   */
+  _hidePauseOverlay() {
+    if (this.pauseOverlay) {
+      this.pauseOverlay.remove();
+      this.pauseOverlay = null;
+    }
+  }
+
+  /**
+   * Build the track list overlay panel.
+   * @private
+   */
+  _buildTrackList() {
+    const panel = document.getElementById('track-list-panel');
+    const overlay = document.getElementById('track-overlay');
+    if (!panel || !overlay) return;
+
+    panel.innerHTML = '';
+
+    for (let i = 0; i < this.musicSync.getTrackCount(); i++) {
+      const track = this.musicSync.getTrack(i);
+      if (!track) continue;
+      const entry = document.createElement('div');
+      entry.className = 'track-entry';
+      if (i === 0) entry.classList.add('active');
+      entry.textContent = `${track.trackNum}. ${track.title}`;
+      entry.dataset.index = i;
+      entry.addEventListener('click', () => {
+        this.player.loadTrack(i).then(() => {
+          this.player.play();
+        });
+        overlay.classList.remove('visible');
+      });
+      panel.appendChild(entry);
+    }
+
+    // Toggle track list on track title click
+    if (this.hudTrack) {
+      this.hudTrack.style.cursor = 'pointer';
+      this.hudTrack.addEventListener('click', () => {
+        overlay.classList.toggle('visible');
+      });
+    }
+
+    // Close on backdrop click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('visible');
+      }
+    });
+  }
+
+  /**
+   * Highlight the active track entry in the track list.
+   * @param {number} index
+   * @private
+   */
+  _highlightTrackEntry(index) {
+    const panel = document.getElementById('track-list-panel');
+    if (!panel) return;
+    const entries = panel.querySelectorAll('.track-entry');
+    entries.forEach((entry, i) => {
+      entry.classList.toggle('active', i === index);
+    });
+  }
+
+  /**
+   * Bind keyboard, mouse, and touch input.
+   * @private
+   */
+  _bindInput() {
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          if (this.screen === 'title') {
+            this._startGame();
+          } else if (this.game && this.game.paused) {
+            this._togglePause();
+          } else {
+            this.game && this.game.jump();
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          this.game && this.game.jump();
+          break;
+        case 'KeyP':
+        case 'Escape':
+          e.preventDefault();
+          this._togglePause();
+          break;
+      }
+    });
+
+    // Touch / click on canvas for jump
+    document.addEventListener('touchstart', (e) => {
+      if (this.screen !== 'game') return;
+      // Don't intercept touches on UI elements
+      if (e.target.closest('.hud') || e.target.closest('.music-bar') ||
+          e.target.closest('.track-overlay') || e.target.closest('.pause-overlay')) {
+        return;
+      }
+      e.preventDefault();
+      if (this.game && this.game.paused) {
+        this._togglePause();
+      } else {
+        this.game && this.game.jump();
+      }
+    }, { passive: false });
+
+    // Mouse click on canvas for jump
+    this.canvas && this.canvas.addEventListener('click', () => {
+      if (this.screen !== 'game') return;
+      if (this.game && this.game.paused) {
+        this._togglePause();
+      } else {
+        this.game && this.game.jump();
+      }
+    });
+  }
+}
+
+// Initialize on DOM ready
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const app = new CosmicRunnerApp();
+    app.init();
+    window.__cosmicRunner = app;
+  });
+}
+
+;
+}
+
+</script>
+</body>
+</html>
