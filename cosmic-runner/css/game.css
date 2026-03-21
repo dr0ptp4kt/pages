@@ -1,0 +1,448 @@
+/* ==========================================================================
+   Cosmic Runner — In The Beginning
+   Pure CSS — no preprocessors, no frameworks
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #050510;
+  --accent-hue: 200;
+  --accent: hsl(var(--accent-hue), 70%, 55%);
+  --text: #e0e0e0;
+  --text-dim: #666;
+  --hud-bg: rgba(5, 5, 16, 0.6);
+  --bar-bg: rgba(10, 10, 20, 0.85);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+  user-select: none;
+}
+
+/* ---------- Screens ---------- */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+.screen.active {
+  display: flex;
+}
+
+/* ---------- Title Screen ---------- */
+#title-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #0a0a30 0%, #050510 70%);
+}
+
+.title-content {
+  text-align: center;
+}
+
+.title-text {
+  font-size: clamp(32px, 8vw, 72px);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(135deg, #4af, #a4f, #f4a, #4af);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: title-shimmer 4s ease infinite;
+}
+
+@keyframes title-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.subtitle {
+  font-size: clamp(12px, 3vw, 18px);
+  color: var(--text-dim);
+  margin-top: 8px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.title-aki {
+  width: 64px;
+  height: 64px;
+  margin: 40px auto;
+  background: var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 20px var(--accent), 0 0 60px rgba(100, 180, 255, 0.3);
+  animation: title-float 3s ease-in-out infinite;
+}
+
+@keyframes title-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.start-btn {
+  display: inline-block;
+  padding: 14px 48px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #fff;
+  background: linear-gradient(135deg, hsl(200, 70%, 45%), hsl(260, 70%, 50%));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(100, 150, 255, 0.4);
+}
+
+.controls-hint {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ---------- Game Canvas ---------- */
+#game-screen {
+  flex-direction: column;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-left, .hud-right, .hud-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-score {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+}
+
+.hud-track {
+  font-size: 12px;
+  color: var(--accent);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-epoch {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.hud-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.hud-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent);
+}
+
+/* ---------- Music Bar ---------- */
+.music-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: var(--bar-bg);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  height: 48px;
+}
+
+.music-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.music-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.music-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+}
+
+#play-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+}
+
+#play-btn:hover {
+  transform: scale(1.1);
+}
+
+.music-progress {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.music-seek {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.music-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+}
+
+.music-volume {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.music-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+.music-vol::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+/* ---------- Track Overlay ---------- */
+.track-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.track-overlay.visible {
+  display: flex;
+}
+
+.track-list-panel {
+  background: rgba(15, 15, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.track-list-panel .track-entry {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+
+.track-list-panel .track-entry:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.track-list-panel .track-entry.active {
+  color: var(--accent);
+  background: rgba(100, 180, 255, 0.08);
+}
+
+/* ---------- Pause Overlay ---------- */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 16, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.pause-overlay h2 {
+  font-size: 36px;
+  letter-spacing: 0.2em;
+  margin-bottom: 16px;
+}
+
+.pause-overlay p {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .hud {
+    padding: 4px 8px;
+  }
+  .hud-score {
+    font-size: 18px;
+  }
+  .hud-track {
+    max-width: 100px;
+    font-size: 10px;
+  }
+  .music-bar {
+    padding: 4px 8px;
+    gap: 6px;
+    height: 40px;
+  }
+  .music-vol {
+    display: none;
+  }
+  .music-volume {
+    display: none;
+  }
+  .music-time {
+    font-size: 10px;
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 400px) {
+  #prev-btn, #next-btn {
+    display: none;
+  }
+}
