@@ -1,0 +1,123 @@
+{
+  "album": "In The Beginning Phase 0 \u2014 V8 Sessions",
+  "artist": "aiphenomenon (A. Johan Bizzle)",
+  "n_tracks": 12,
+  "total_duration": 3600.0,
+  "total_events": 2880,
+  "seed_v8": 42,
+  "seed_v18": 42,
+  "engines": [
+    "RadioEngineV8",
+    "RadioEngineV15_V8Tempo"
+  ],
+  "tracks": [
+    {
+      "track_num": 1,
+      "title": "Ember",
+      "file": "V8_Sessions-aiphenomenon-01-Ember_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-01-Ember.mp3",
+      "duration": 251.75,
+      "start_time": 0.0,
+      "n_events": 122
+    },
+    {
+      "track_num": 2,
+      "title": "Torrent",
+      "file": "V8_Sessions-aiphenomenon-02-Torrent_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-02-Torrent.mp3",
+      "duration": 294.0,
+      "start_time": 251.75,
+      "n_events": 161
+    },
+    {
+      "track_num": 3,
+      "title": "Quartz",
+      "file": "V8_Sessions-aiphenomenon-03-Quartz_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-03-Quartz.mp3",
+      "duration": 378.0,
+      "start_time": 545.75,
+      "n_events": 112
+    },
+    {
+      "track_num": 4,
+      "title": "Tide",
+      "file": "V8_Sessions-aiphenomenon-04-Tide_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-04-Tide.mp3",
+      "duration": 298.25,
+      "start_time": 923.75,
+      "n_events": 253
+    },
+    {
+      "track_num": 5,
+      "title": "Root",
+      "file": "V8_Sessions-aiphenomenon-05-Root_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-05-Root.mp3",
+      "duration": 289.75,
+      "start_time": 1222.0,
+      "n_events": 490
+    },
+    {
+      "track_num": 6,
+      "title": "Glacier",
+      "file": "V8_Sessions-aiphenomenon-06-Glacier_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-06-Glacier.mp3",
+      "duration": 288.0,
+      "start_time": 1511.75,
+      "n_events": 304
+    },
+    {
+      "track_num": 7,
+      "title": "Bloom",
+      "file": "V8_Sessions-aiphenomenon-07-Bloom_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-07-Bloom.mp3",
+      "duration": 252.0,
+      "start_time": 1799.75,
+      "n_events": 122
+    },
+    {
+      "track_num": 8,
+      "title": "Dusk",
+      "file": "V8_Sessions-aiphenomenon-08-Dusk_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-08-Dusk.mp3",
+      "duration": 294.0,
+      "start_time": 2051.75,
+      "n_events": 161
+    },
+    {
+      "track_num": 9,
+      "title": "Coral",
+      "file": "V8_Sessions-aiphenomenon-09-Coral_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-09-Coral.mp3",
+      "duration": 378.0,
+      "start_time": 2345.75,
+      "n_events": 112
+    },
+    {
+      "track_num": 10,
+      "title": "Moss",
+      "file": "V8_Sessions-aiphenomenon-10-Moss_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-10-Moss.mp3",
+      "duration": 298.25,
+      "start_time": 2723.75,
+      "n_events": 253
+    },
+    {
+      "track_num": 11,
+      "title": "Thunder",
+      "file": "V8_Sessions-aiphenomenon-11-Thunder_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-11-Thunder.mp3",
+      "duration": 289.75,
+      "start_time": 3022.0,
+      "n_events": 490
+    },
+    {
+      "track_num": 12,
+      "title": "Horizon",
+      "file": "V8_Sessions-aiphenomenon-12-Horizon_notes.json",
+      "audio_file": "V8_Sessions-aiphenomenon-12-Horizon.mp3",
+      "duration": 288.25,
+      "start_time": 3311.75,
+      "n_events": 304
+    }
+  ]
+}
