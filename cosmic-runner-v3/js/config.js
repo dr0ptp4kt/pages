@@ -1,0 +1,63 @@
+/**
+ * Configuration constants for Cosmic Runner V3.
+ */
+
+/** Grid dimensions for the visualizer. */
+const GRID_SIZE = 64;
+const GRID_CELLS = GRID_SIZE * GRID_SIZE;
+
+/** Track color schemes — each track gets a unique palette.
+ * First 6 tracks = Universe 1 (Big Bang -> present day)
+ * Last 6 tracks = Universe 2 (echo of first, shifted hues)
+ */
+const TRACK_COLORS = [
+  // Universe 1
+  { name: 'Ember',    primary: [255, 80, 40],   secondary: [255, 160, 60],  bg: [30, 8, 5],    starTint: [255, 120, 80],   hueBase: 10 },
+  { name: 'Torrent',  primary: [40, 120, 255],  secondary: [100, 180, 255], bg: [5, 12, 30],   starTint: [80, 140, 255],   hueBase: 210 },
+  { name: 'Quartz',   primary: [200, 180, 255], secondary: [160, 140, 220], bg: [15, 12, 25],  starTint: [180, 160, 255],  hueBase: 270 },
+  { name: 'Tide',     primary: [40, 200, 180],  secondary: [80, 220, 200],  bg: [5, 20, 18],   starTint: [60, 200, 180],   hueBase: 170 },
+  { name: 'Root',     primary: [120, 200, 60],  secondary: [160, 220, 100], bg: [10, 20, 5],   starTint: [100, 200, 80],   hueBase: 90 },
+  { name: 'Glacier',  primary: [140, 220, 255], secondary: [180, 240, 255], bg: [10, 18, 25],  starTint: [160, 220, 255],  hueBase: 195 },
+  // Universe 2 (echoed but shifted)
+  { name: 'Bloom',    primary: [255, 100, 80],  secondary: [255, 180, 100], bg: [28, 10, 8],   starTint: [255, 140, 100],  hueBase: 15 },
+  { name: 'Dusk',     primary: [80, 100, 255],  secondary: [140, 160, 255], bg: [8, 10, 28],   starTint: [100, 120, 255],  hueBase: 225 },
+  { name: 'Coral',    primary: [255, 140, 180], secondary: [255, 180, 200], bg: [25, 12, 18],  starTint: [255, 160, 190],  hueBase: 340 },
+  { name: 'Moss',     primary: [80, 180, 120],  secondary: [120, 200, 150], bg: [8, 18, 10],   starTint: [100, 180, 130],  hueBase: 140 },
+  { name: 'Thunder',  primary: [180, 140, 255], secondary: [200, 170, 255], bg: [15, 12, 28],  starTint: [190, 150, 255],  hueBase: 280 },
+  { name: 'Horizon',  primary: [255, 200, 100], secondary: [255, 220, 140], bg: [25, 18, 8],   starTint: [255, 210, 120],  hueBase: 40 },
+];
+
+/** Scoring rules. */
+const SCORE = {
+  HIT_OBJECT: 1,
+  JUMP_OVER_1: 2,
+  JUMP_OVER_2: 3,
+  JUMP_OVER_3: 3,
+};
+
+/** Glow threshold: >50% of track without hitting = glow activated. */
+const GLOW_THRESHOLD = 0.5;
+
+/** Number of levels before full 3D. */
+const FULL_3D_LEVEL = 6;
+
+/** Max multi-jumps. */
+const MAX_MULTI_JUMPS = 4;
+
+/** Speed range for user control. */
+const SPEED_MIN = 0.5;
+const SPEED_MAX = 2.5;
+const SPEED_STEP = 0.25;
+
+/** Accessibility modes. */
+const ACCESS_MODES = {
+  minimal: { stars: false, blastZoom: false, glow: false, glimmer: false, colorIntensity: 0.6 },
+  normal:  { stars: true,  blastZoom: true,  glow: true,  glimmer: false, colorIntensity: 1.0 },
+  flashy:  { stars: true,  blastZoom: true,  glow: true,  glimmer: true,  colorIntensity: 1.3 },
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { GRID_SIZE, GRID_CELLS, TRACK_COLORS, SCORE,
+    GLOW_THRESHOLD, FULL_3D_LEVEL, MAX_MULTI_JUMPS, SPEED_MIN, SPEED_MAX,
+    SPEED_STEP, ACCESS_MODES };
+}
