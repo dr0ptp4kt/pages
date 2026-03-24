@@ -78,60 +78,80 @@ class MusicGenerator {
     this.onTrackEnd = null;
 
     // ──── Epoch Definitions ────
+    // Each epoch mirrors the Python radio engine's cosmic epochs with
+    // distinct timbres, scales, tempos, and density.
     this._epochs = [
       {
         name: 'Quantum Fluctuation',
         inst: 'cosmic',
+        melodyInst: 'bell',
         scale: [0, 1, 3, 6, 7, 10],     // whole-tone-ish
         baseNote: 48,
-        tempoBase: 40,
-        percChance: 0.05,
+        tempoBase: 55,
+        percChance: 0.08,
         padInst: 'warm_pad',
+        bassInst: 'cello',
+        density: 0.5,  // sparse ambient beginning
       },
       {
         name: 'Inflation',
         inst: 'bell',
+        melodyInst: 'piano',
         scale: [0, 2, 4, 5, 7, 9, 11],  // major
         baseNote: 52,
-        tempoBase: 60,
-        percChance: 0.15,
+        tempoBase: 72,
+        percChance: 0.2,
         padInst: 'choir_oo',
+        bassInst: 'cello',
+        density: 0.7,
       },
       {
         name: 'Stellar Nucleosynthesis',
-        inst: 'strings',
+        inst: 'violin',
+        melodyInst: 'flute',
         scale: [0, 2, 3, 5, 7, 8, 10],  // natural minor
         baseNote: 55,
-        tempoBase: 80,
-        percChance: 0.25,
+        tempoBase: 88,
+        percChance: 0.3,
         padInst: 'cello',
+        bassInst: 'cello',
+        density: 0.85,
       },
       {
         name: 'Galaxy Formation',
         inst: 'piano',
+        melodyInst: 'violin',
         scale: [0, 2, 4, 7, 9],          // major pentatonic
         baseNote: 60,
-        tempoBase: 100,
-        percChance: 0.35,
-        padInst: 'strings',
+        tempoBase: 105,
+        percChance: 0.4,
+        padInst: 'warm_pad',
+        bassInst: 'cello',
+        density: 1.0,
       },
       {
         name: 'Solar Ignition',
-        inst: 'brass',
+        inst: 'trumpet',
+        melodyInst: 'horn',
         scale: [0, 1, 4, 5, 7, 8, 10],  // phrygian dominant
         baseNote: 57,
-        tempoBase: 110,
-        percChance: 0.4,
+        tempoBase: 112,
+        percChance: 0.45,
         padInst: 'horn',
+        bassInst: 'cello',
+        density: 1.0,
       },
       {
         name: 'Emergence of Life',
         inst: 'flute',
+        melodyInst: 'piano',
         scale: [0, 2, 4, 6, 7, 9, 11],  // lydian
         baseNote: 64,
-        tempoBase: 90,
-        percChance: 0.3,
+        tempoBase: 95,
+        percChance: 0.35,
         padInst: 'choir_ah',
+        bassInst: 'cello',
+        density: 0.9,
       },
     ];
   }
@@ -190,14 +210,21 @@ class MusicGenerator {
   _generateTrack(epoch, epochIndex) {
     const notes = [];
     const dur = this.trackDuration;
-    const bpm = epoch.tempoBase + this._randInt(-10, 10);
+    const bpm = epoch.tempoBase + this._randInt(-8, 8);
     const beatDur = 60 / bpm;
+    const density = epoch.density || 1.0;
 
     // ──── Pad / Drone Layer ────
     this._generatePadLayer(notes, epoch, dur, beatDur);
 
+    // ──── Bass Layer (like Python's bass track) ────
+    this._generateBassLayer(notes, epoch, dur, beatDur, density);
+
     // ──── Melody Layer ────
     this._generateMelodyLayer(notes, epoch, dur, beatDur);
+
+    // ──── Counter-Melody Layer (second instrument for richness) ────
+    this._generateCounterMelodyLayer(notes, epoch, dur, beatDur, density);
 
     // ──── Chord Layer ────
     this._generateChordLayer(notes, epoch, dur, beatDur);
@@ -217,7 +244,7 @@ class MusicGenerator {
    */
   _generatePadLayer(notes, epoch, dur, beatDur) {
     let t = 0;
-    const padDur = beatDur * 8 + this._rand() * beatDur * 4;
+    const padDur = beatDur * 6 + this._rand() * beatDur * 4;
     while (t < dur) {
       const noteLen = padDur + this._rand() * beatDur * 4;
       const scaleIdx = this._randInt(0, epoch.scale.length);
@@ -231,7 +258,100 @@ class MusicGenerator {
         inst: epoch.padInst, bend,
       });
 
-      t += noteLen * (0.7 + this._rand() * 0.5);
+      // Add a harmony note (3rd or 5th above) for richer pads
+      if (this._rand() < 0.6) {
+        const harmIdx = (scaleIdx + 2) % epoch.scale.length;
+        const harmOctave = (scaleIdx + 2 >= epoch.scale.length) ? 12 : 0;
+        const harmPitch = epoch.baseNote - 12 + epoch.scale[harmIdx] + harmOctave;
+        notes.push({
+          t: t + this._rand() * beatDur,
+          dur: Math.min(noteLen * 0.8, dur - t),
+          note: harmPitch, vel: vel * 0.7, ch: 1,
+          inst: epoch.padInst, bend: bend * 0.5,
+        });
+      }
+
+      t += noteLen * (0.6 + this._rand() * 0.4);
+    }
+  }
+
+  /**
+   * Generate bass line (root notes following chord progression).
+   * Mirrors Python engine's bass track with octave-dropped scale tones.
+   */
+  _generateBassLayer(notes, epoch, dur, beatDur, density) {
+    let t = 0;
+    const scale = epoch.scale;
+    const bassBase = epoch.baseNote - 24; // Two octaves below melody
+    const bassInterval = beatDur * 2; // Bass hits every 2 beats
+
+    while (t < dur) {
+      if (this._rand() < 0.85 * density) {
+        const rootIdx = this._randInt(0, scale.length);
+        const pitch = bassBase + scale[rootIdx];
+        const noteDur = beatDur * (1.5 + this._rand() * 2.5);
+        const vel = 0.25 + this._rand() * 0.2;
+
+        if (pitch >= 24 && pitch <= 60) {
+          notes.push({
+            t, dur: Math.min(noteDur, dur - t) * 0.9,
+            note: pitch, vel, ch: 4,
+            inst: epoch.bassInst || 'cello', bend: 0,
+          });
+
+          // Occasional octave doubling for richness
+          if (this._rand() < 0.3 * density) {
+            notes.push({
+              t: t + beatDur * 0.5,
+              dur: beatDur * 0.8,
+              note: pitch + 12, vel: vel * 0.6, ch: 4,
+              inst: epoch.bassInst || 'cello', bend: 0,
+            });
+          }
+        }
+      }
+
+      t += bassInterval * (0.8 + this._rand() * 0.4);
+    }
+  }
+
+  /**
+   * Generate counter-melody (secondary melodic voice for texture).
+   * Uses the epoch's melodyInst (different from main inst) for timbral variety.
+   */
+  _generateCounterMelodyLayer(notes, epoch, dur, beatDur, density) {
+    if (density < 0.6) return; // Skip for sparse early epochs
+
+    let t = beatDur * 8; // Enter after the main melody establishes
+    let prevPitch = epoch.baseNote + 7; // Start a 5th above
+    const scale = epoch.scale;
+
+    while (t < dur) {
+      // Counter-melody plays less frequently than main melody
+      if (this._rand() < 0.55 * density) {
+        const noteDur = beatDur * (1 + this._rand() * 3);
+        const interval = this._randInt(-3, 4);
+        const scalePos = this._nearestScalePos(prevPitch, epoch.baseNote, scale) + interval;
+        const pitch = Math.max(48, Math.min(84, this._scalePosToPitch(scalePos, epoch.baseNote, scale)));
+        prevPitch = pitch;
+
+        const vel = 0.25 + this._rand() * 0.25;
+        const bend = (this._rand() < this.bendAmount * 0.3) ?
+          (this._rand() - 0.5) * this.bendAmount * 0.3 : 0;
+
+        notes.push({
+          t, dur: noteDur * 0.85,
+          note: pitch, vel, ch: 5,
+          inst: epoch.melodyInst || epoch.inst, bend,
+        });
+      }
+
+      t += beatDur * (1 + this._rand() * 3);
+
+      // Occasional long pause for breathing room
+      if (this._rand() < 0.15) {
+        t += beatDur * this._randInt(4, 12);
+      }
     }
   }
 
@@ -272,8 +392,8 @@ class MusicGenerator {
       const vel = 0.4 + this._rand() * 0.4;
       const bend = (this._rand() < this.bendAmount) ? (this._rand() - 0.5) * this.bendAmount : 0;
 
-      // Rest probability
-      if (this._rand() > 0.15) {
+      // Rest probability (lower = more notes)
+      if (this._rand() > 0.1) {
         notes.push({
           t, dur: noteDur * 0.9,
           note: pitch, vel, ch: 0,
@@ -283,9 +403,9 @@ class MusicGenerator {
 
       t += noteDur;
 
-      // Occasional pause
-      if (this._rand() < 0.1) {
-        t += beatDur * this._randInt(1, 4);
+      // Occasional pause for phrasing
+      if (this._rand() < 0.08) {
+        t += beatDur * this._randInt(1, 3);
       }
     }
   }
@@ -583,9 +703,9 @@ class MusicGenerator {
     return (this._synth.ctx.currentTime - this._startCtxTime) * this.speed;
   }
 
-  /** @returns {number} Duration of the current track. */
+  /** @returns {number} Duration of the current track (accounting for speed). */
   getDuration() {
-    return this.trackDuration;
+    return this.trackDuration / this.speed;
   }
 
   /** @returns {string} Name of the current track/epoch. */

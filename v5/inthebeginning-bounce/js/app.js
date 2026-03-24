@@ -166,6 +166,17 @@ class CosmicRunnerApp {
       });
     }
 
+    // Track close button
+    const trackClose = document.getElementById('track-close');
+    if (trackClose) {
+      trackClose.addEventListener('click', () => {
+        document.getElementById('track-overlay')?.classList.remove('visible');
+      });
+    }
+
+    // Enable click-outside-to-close for all overlays
+    this._initOverlayBackdropClose();
+
     // Game 3D toggle
     const game3DToggle = document.getElementById('game-3d-toggle');
     if (game3DToggle) {
@@ -239,6 +250,57 @@ class CosmicRunnerApp {
     if (this._pausedByOverlay && this.game?.paused) {
       this._togglePause();
       this._pausedByOverlay = false;
+    }
+  }
+
+  /**
+   * Enable click-outside-to-close for all overlay elements.
+   * Clicking the overlay backdrop (not the inner panel) closes the overlay.
+   */
+  _initOverlayBackdropClose() {
+    // Standard overlays (theme, accessibility, help, mutation, style)
+    document.querySelectorAll('.overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        // Only close if user clicked the backdrop, not the inner panel
+        if (e.target === overlay) {
+          this._hideOverlay(overlay.id);
+        }
+      });
+    });
+
+    // Track overlay (uses .track-overlay class)
+    const trackOverlay = document.getElementById('track-overlay');
+    if (trackOverlay) {
+      trackOverlay.addEventListener('click', (e) => {
+        if (e.target === trackOverlay) {
+          trackOverlay.classList.remove('visible');
+        }
+      });
+    }
+
+    // Escape key closes any visible overlay
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this._closeAllOverlays();
+      }
+    });
+  }
+
+  /** Close all visible overlays. */
+  _closeAllOverlays() {
+    const overlayIds = [
+      'theme-overlay', 'accessibility-overlay', 'help-overlay',
+      'mutation-overlay', 'style-overlay', 'track-overlay',
+    ];
+    for (const id of overlayIds) {
+      const el = document.getElementById(id);
+      if (el && el.classList.contains('visible')) {
+        if (id === 'track-overlay') {
+          el.classList.remove('visible');
+        } else {
+          this._hideOverlay(id);
+        }
+      }
     }
   }
 
@@ -359,13 +421,11 @@ class CosmicRunnerApp {
     const mutation = MIDI_MUTATIONS[index];
     if (!mutation) return;
     if (this.player) {
-      if (this.player.midiPlayer) {
-        this.player.midiPlayer.setMutation(mutation);
-      }
-      if (this.player.musicGenerator) {
-        // Apply mutation to synth engine for generator too
-        this.player._synth.setMutation(mutation);
-      }
+      // Use the unified setMutation which applies to both MIDI and synth paths.
+      // IMPORTANT: midiPlayer.setMutation internally calls _synth.setMutation,
+      // so we must NOT also call _synth.setMutation separately — double-setting
+      // the filter causes audio glitches that break mutations after 1-2 switches.
+      this.player.setMutation(mutation);
     }
     // Update MIDI info display
     const mutEl = document.getElementById('midi-mutation');
@@ -1007,8 +1067,8 @@ class CosmicRunnerApp {
         }
         break;
 
-      // Pause
-      case 'p': case 'P': case 'Escape':
+      // Pause (Escape also closes overlays via _initOverlayBackdropClose)
+      case 'p': case 'P':
         this._togglePause();
         break;
 

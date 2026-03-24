@@ -552,13 +552,19 @@ class SynthEngine {
   }
 
   /**
-   * Set the mutation preset.
+   * Set the mutation preset with clamped values.
    * @param {Object} mutation - { pitchShift, tempoMult, reverb, filter }
    */
   setMutation(mutation) {
-    this._mutation = mutation || { pitchShift: 0, tempoMult: 1.0, reverb: 0, filter: 'none' };
+    const m = mutation || {};
+    this._mutation = {
+      pitchShift: Math.max(-24, Math.min(24, m.pitchShift || 0)),
+      tempoMult: Math.max(0.25, Math.min(4, m.tempoMult || 1.0)),
+      reverb: Math.max(0, Math.min(1, m.reverb || 0)),
+      filter: m.filter || 'none',
+    };
     if (this._reverbSend && this.ctx) {
-      this._reverbSend.gain.setValueAtTime(this._mutation.reverb || 0, this.ctx.currentTime);
+      this._reverbSend.gain.setValueAtTime(this._mutation.reverb, this.ctx.currentTime);
     }
     this._applyFilter();
   }

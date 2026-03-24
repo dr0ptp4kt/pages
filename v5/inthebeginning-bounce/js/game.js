@@ -1,11 +1,9 @@
 /**
  * Game Engine for Cosmic Runner V5.
  *
- * V5 changes:
- * - Obstacles come from top, fall downward toward players
- * - No player pushing — just clamp the moving player
- * - Fall speed replaces scroll speed for obstacle movement
- * - Jump-over detection checks if obstacle passed below player while airborne
+ * 2D mode: obstacles fly right-to-left across the terrain with rolling hills.
+ * 3D mode: obstacles come from top (far) and move toward the player (near).
+ * Jump-over detection adapts to mode direction.
  */
 
 class Game {
@@ -29,7 +27,7 @@ class Game {
     this.baseSpeed = 1;
     this.speed = 1;
     this.scrollSpeed = 200;
-    this.fallSpeed = 220; // V5: vertical fall speed for obstacles
+    this.fallSpeed = 180; // obstacle movement speed (horizontal in 2D, vertical in 3D)
     this.userSpeedMult = 1.0;
     this.totalPoints = 0;
     this.blastCount = 0;
@@ -296,7 +294,9 @@ class Game {
     if (this.mode === 'game') {
       this.speed = (this.baseSpeed + intensity * 0.8) * this.userSpeedMult;
       this.scrollSpeed = (180 + intensity * 120) * this.userSpeedMult;
-      this.fallSpeed = (200 + intensity * 140) * this.userSpeedMult;
+      // Scale obstacle speed based on level: gentler at early levels, still responsive
+      const levelScale = 1.0 + this.currentLevel * 0.04;
+      this.fallSpeed = (140 + intensity * 80) * this.userSpeedMult * levelScale;
     } else {
       this.speed = 0.3;
       this.scrollSpeed = 30;
@@ -352,6 +352,12 @@ class Game {
     }
 
     if (this.mode === 'game') {
+      // Sync obstacle mode: horizontal (2D) vs vertical (3D)
+      const is2D = this.renderer3d.tilt < 0.1;
+      if (this.obstacles) {
+        this.obstacles.horizontalMode = is2D;
+      }
+
       for (const runner of this.runners) {
         const terrainGroundY = this.renderer3d.getGroundYAtX(
           runner.x, this.groundY, this.background.scrollX);
@@ -360,17 +366,23 @@ class Game {
       }
 
       if (this.obstacles) {
-        // V5: pass fallSpeed for vertical obstacle movement
         this.obstacles.update(dt, this.speed, this.fallSpeed);
 
-        // In 2D mode, clamp obstacles that have reached ground to the terrain surface
-        // so they appear to sit on the hills rather than pass through them
-        if (this.renderer3d.tilt < 0.1) {
+        if (is2D) {
+          // 2D mode: obstacles fly right-to-left, sit on terrain surface
+          for (const obs of this.obstacles.obstacles) {
+            if (obs.blasted) continue;
+            // Place obstacle on the terrain at its current X position
+            const terrainGroundY = this.renderer3d.getGroundYAtX(
+              obs.x + obs.w / 2, this.groundY, this.background.scrollX);
+            obs.y = terrainGroundY - obs.h;
+          }
+        } else {
+          // 3D mode: clamp falling obstacles to terrain surface
           for (const obs of this.obstacles.obstacles) {
             if (obs.blasted) continue;
             const terrainGroundY = this.renderer3d.getGroundYAtX(
               obs.x + obs.w / 2, this.groundY, this.background.scrollX);
-            // If obstacle has fallen to or below terrain, clamp it on the surface
             if (obs.y + obs.h > terrainGroundY) {
               obs.y = terrainGroundY - obs.h;
             }

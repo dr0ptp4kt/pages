@@ -1,8 +1,8 @@
 /**
  * Obstacle management for Cosmic Runner V5.
  *
- * V5 change: objects spawn from TOP of screen and move DOWN toward players.
- * In 3D mode, objects appear at random horizontal positions on the road.
+ * 2D mode: objects spawn from the RIGHT edge and fly LEFT across the terrain.
+ * 3D mode: objects spawn from the top (far away) and move toward the player.
  * Players must position themselves to line up and jump over approaching objects.
  * Progressive difficulty: more objects spawn at higher levels.
  */
@@ -89,8 +89,9 @@ class Obstacle {
    * @param {number} screenWidth
    * @param {number} screenHeight
    * @param {Object} type - Obstacle type definition.
+   * @param {boolean} [horizontal=false] - True for 2D (right-to-left) mode.
    */
-  constructor(laneX, screenWidth, screenHeight, type) {
+  constructor(laneX, screenWidth, screenHeight, type, horizontal) {
     this.type = type;
     this.emoji = type.emoji;
     this.typeName = type.name;
@@ -99,12 +100,22 @@ class Obstacle {
     this.w = type.minW + Math.random() * (type.maxW - type.minW);
     this.h = type.minH + Math.random() * (type.maxH - type.minH);
 
-    // Horizontal position as fraction of screen width
+    // Horizontal position as fraction of screen width (used for lane display)
     this.laneFraction = laneX;
-    this.x = laneX * screenWidth - this.w / 2;
+    this.horizontal = !!horizontal;
 
-    // Start above the screen
-    this.y = -this.h - 20;
+    if (this.horizontal) {
+      // 2D mode: spawn off the right edge, lane determines vertical position
+      this.x = screenWidth + this.w + 20;
+      // laneX maps to vertical position on screen (10%-90% of groundY range)
+      this.laneYFraction = laneX;
+      this.y = 0; // will be set by game.js terrain clamping
+    } else {
+      // 3D mode: spawn above screen at lane position
+      this.x = laneX * screenWidth - this.w / 2;
+      this.y = -this.h - 20;
+    }
+
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
 
@@ -118,7 +129,13 @@ class Obstacle {
   }
 
   update(dt, fallSpeed) {
-    this.y += fallSpeed * dt;
+    if (this.horizontal) {
+      // 2D mode: move left
+      this.x -= fallSpeed * dt;
+    } else {
+      // 3D mode: move down
+      this.y += fallSpeed * dt;
+    }
     this.phase += dt * 2;
 
     if (this.blasted) {
@@ -151,9 +168,13 @@ class Obstacle {
   }
 
   isOffScreen() {
-    return this.blasted
-      ? this.particles.length === 0 && this.blastTimer > 0.6
-      : this.y > this.screenHeight + 40;
+    if (this.blasted) {
+      return this.particles.length === 0 && this.blastTimer > 0.6;
+    }
+    if (this.horizontal) {
+      return this.x + this.w < -40;
+    }
+    return this.y > this.screenHeight + 40;
   }
 
   getBounds() {
@@ -204,6 +225,8 @@ class ObstacleManager {
     this.level = 0;
     this.laneCount = 3;
     this.availableTypes = getObstacleTypesForLevel(0);
+    /** @type {boolean} True when in 2D mode (objects fly right-to-left). */
+    this.horizontalMode = true;
   }
 
   resize(screenWidth, groundY) {
@@ -227,8 +250,10 @@ class ObstacleManager {
   setLevel(level) {
     this.level = level;
     this.availableTypes = getObstacleTypesForLevel(level);
-    // Progressive difficulty: faster spawning at higher levels
-    this.spawnInterval = Math.max(0.4, 1.5 - level * 0.08);
+    // Progressive difficulty: spawn interval decreases gradually.
+    // Level 0: 1.6s, Level 6: 1.24s, Level 7: 1.18s, Level 11: 0.8s
+    // Objects start slower and ramp gently — user can always use +/- to adjust.
+    this.spawnInterval = Math.max(0.7, 1.6 - level * 0.06);
   }
 
   /**
@@ -287,7 +312,7 @@ class ObstacleManager {
     // Discrete lane-based spawning
     const { laneX, laneIdx } = this._pickLane();
 
-    const obs = new Obstacle(laneX, this.screenWidth, this.screenHeight, type);
+    const obs = new Obstacle(laneX, this.screenWidth, this.screenHeight, type, this.horizontalMode);
     this.obstacles.push(obs);
     this.totalSpawned++;
 
@@ -295,7 +320,7 @@ class ObstacleManager {
     if (this.level >= 3 && Math.random() < 0.15 + this.level * 0.03) {
       const extraType = this.availableTypes[Math.floor(Math.random() * this.availableTypes.length)];
       const { laneX: extraLaneX } = this._pickLane(laneIdx);
-      const extra = new Obstacle(extraLaneX, this.screenWidth, this.screenHeight, extraType);
+      const extra = new Obstacle(extraLaneX, this.screenWidth, this.screenHeight, extraType, this.horizontalMode);
       this.obstacles.push(extra);
       this.totalSpawned++;
     }
@@ -315,7 +340,8 @@ class ObstacleManager {
 
   /**
    * Check if player jumped over an obstacle.
-   * V5: obstacle has passed below the player's feet while player was airborne.
+   * 2D horizontal: obstacle passed to the left of the player while airborne.
+   * 3D vertical: obstacle passed below the player's feet while airborne.
    */
   checkJumpedOver(bounds, isGrounded) {
     let count = 0;
@@ -323,14 +349,22 @@ class ObstacleManager {
       if (obs.blasted || obs.jumpedOver) continue;
       const ob = obs.getBounds();
 
-      // Obstacle must be in the same horizontal lane as the player
-      const horizontalOverlap = bounds.x < ob.x + ob.w && bounds.x + bounds.w > ob.x;
-      // Obstacle has passed below the player (top of obstacle > bottom of player bounds)
-      const passedBelow = ob.y > bounds.y + bounds.h;
-
-      if (horizontalOverlap && passedBelow && !isGrounded) {
-        obs.jumpedOver = true;
-        count++;
+      if (obs.horizontal) {
+        // 2D mode: obstacle has passed left of the player
+        const verticalOverlap = bounds.y < ob.y + ob.h && bounds.y + bounds.h > ob.y;
+        const passedLeft = ob.x + ob.w < bounds.x;
+        if (verticalOverlap && passedLeft && !isGrounded) {
+          obs.jumpedOver = true;
+          count++;
+        }
+      } else {
+        // 3D mode: obstacle has passed below the player
+        const horizontalOverlap = bounds.x < ob.x + ob.w && bounds.x + bounds.w > ob.x;
+        const passedBelow = ob.y > bounds.y + bounds.h;
+        if (horizontalOverlap && passedBelow && !isGrounded) {
+          obs.jumpedOver = true;
+          count++;
+        }
       }
     }
     return count;

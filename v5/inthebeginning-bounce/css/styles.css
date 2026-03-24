@@ -623,6 +623,7 @@ html, body {
 .track-overlay.visible { display: flex; }
 
 .track-list-panel {
+  position: relative;
   background: rgba(15, 15, 30, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px; padding: 16px;
