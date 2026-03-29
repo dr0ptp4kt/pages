@@ -1063,20 +1063,23 @@ class CosmicRunnerApp {
           this._p2RightHeld = true;
         }
         break;
-      case '5': case '2':
+      case '5':
         if (e.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
           if (this.game) this.game.fastDrop(1);
         }
         break;
 
-      // Mode switching
+      // Mode switching (1=player, 2=game, 3=grid)
+      // '2' also serves as P2 fast-drop on numpad
       case '1':
         if (e.location !== KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
           this._switchMode('player');
         }
         break;
       case '2':
-        if (e.location !== KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
+        if (e.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
+          if (this.game) this.game.fastDrop(1);
+        } else {
           this._switchMode('game');
         }
         break;

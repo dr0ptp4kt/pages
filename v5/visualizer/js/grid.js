@@ -12,7 +12,8 @@
  */
 
 // Instrument family to base hue mapping (degrees)
-const FAMILY_HUES = {
+// Uses var so synth-engine.js can extend it without redeclaration errors
+var FAMILY_HUES = {
   strings: 0,       // red
   keys: 220,        // blue
   winds: 120,       // green

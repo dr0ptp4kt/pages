@@ -871,7 +871,7 @@ class VisualizerApp {
 
     // Random seed for this cycle
     this.musicGenerator.seed = Math.floor(Math.random() * 999999);
-    this.musicGenerator.generateCycle();
+    this.musicGenerator.generate(this.musicGenerator.seed);
     this.musicGenerator.currentTrack = 0;
     this.musicGenerator.play();
 
@@ -896,7 +896,7 @@ class VisualizerApp {
     if (next >= this.musicGenerator.trackCount) {
       // New cycle with new seed
       this.musicGenerator.seed = Math.floor(Math.random() * 999999);
-      this.musicGenerator.generateCycle();
+      this.musicGenerator.generate(this.musicGenerator.seed);
       this.musicGenerator.currentTrack = 0;
     } else {
       this.musicGenerator.currentTrack = next;

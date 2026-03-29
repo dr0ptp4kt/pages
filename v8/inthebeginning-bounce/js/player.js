@@ -390,7 +390,10 @@ class GamePlayer {
     this.setMode(AUDIO_MODE.MIDI);
     const ok = await this.midiPlayer.loadCatalog(catalogUrl, baseUrl);
     if (!ok) return false;
-    return this.midiPlayer.loadNextRandom();
+    const loaded = await this.midiPlayer.loadNextRandom();
+    // Fire track change after first MIDI loads so info panel updates
+    if (loaded && this.onTrackChange) this.onTrackChange(-1);
+    return loaded;
   }
 
   /**

@@ -32,8 +32,9 @@ const TIMBRES = {
   sine:      [1.0],
 };
 
-/** Instrument family → base hue for coloring (matches grid.js scheme). */
-const FAMILY_HUES = {
+/** Instrument family → base hue for coloring (matches grid.js scheme).
+ *  Uses var to avoid redeclaration when grid.js also defines FAMILY_HUES. */
+var FAMILY_HUES = {
   strings: 0,       // red
   keys: 220,        // blue
   winds: 120,       // green

@@ -37,8 +37,9 @@ const TIMBRES = {
   sine:      [1.0],
 };
 
-/** Instrument family → base hue for coloring (matches grid.js scheme). */
-const FAMILY_HUES = {
+/** Instrument family → base hue for coloring (matches grid.js scheme).
+ *  Merges with grid.js FAMILY_HUES if already defined (visualizer context). */
+var FAMILY_HUES = Object.assign({
   strings: 0,       // red
   keys: 220,        // blue
   winds: 120,       // green
@@ -49,7 +50,7 @@ const FAMILY_HUES = {
   brass: 30,        // orange
   organ: 200,       // indigo
   bass: 260,        // violet
-};
+}, typeof FAMILY_HUES !== 'undefined' ? FAMILY_HUES : {});
 
 /** Map GM program groups to instrument timbre names. */
 const GM_TO_TIMBRE = {

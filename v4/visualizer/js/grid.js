@@ -12,7 +12,7 @@
  */
 
 // Instrument family to base hue mapping (degrees)
-const FAMILY_HUES = {
+var FAMILY_HUES = {
   strings: 0,       // red
   keys: 220,        // blue
   winds: 120,       // green
