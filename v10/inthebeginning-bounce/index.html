@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>inthebeginning bounce — V10</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Title Screen -->
+  <div id="title-screen" class="screen active">
+    <div class="title-content">
+      <h1 class="title-text"><span class="title-prefix">inthebeginning</span><br><span class="title-main">bounce</span></h1>
+      <p class="subtitle">V8 Sessions &mdash; V10</p>
+      <div class="mode-select">
+        <button class="mode-btn" id="mode-player" data-mode="player">
+          <span class="mode-icon">&#9835;</span>
+          <span class="mode-label">Music Player</span>
+        </button>
+        <button class="mode-btn selected" id="mode-game" data-mode="game">
+          <span class="mode-icon">&#9654;</span>
+          <span class="mode-label">Game</span>
+        </button>
+        <button class="mode-btn" id="mode-grid" data-mode="grid">
+          <span class="mode-icon">&#9638;</span>
+          <span class="mode-label">Grid</span>
+        </button>
+      </div>
+      <div class="player-count-select">
+        <button class="player-count-btn selected" data-players="1">1 Player</button>
+        <button class="player-count-btn" data-players="2">2 Players</button>
+      </div>
+      <button class="start-btn" id="start-btn">START</button>
+      <div class="audio-mode-select" id="audio-mode-select">
+        <label class="sound-mode-label">Sound:</label>
+        <select class="sound-mode-select" id="sound-mode-select">
+          <option value="mp3">Album (MP3)</option>
+          <option value="midi">MIDI Library</option>
+          <option value="synth">Synth Generator</option>
+          <option value="wasm">WASM Synth</option>
+        </select>
+        <label class="toggle-label">
+          <input type="checkbox" id="infinite-mode-toggle" checked>
+          <span class="toggle-text">Infinite</span>
+        </label>
+      </div>
+      <div class="title-links">
+        <button class="link-btn" id="theme-btn">Themes</button>
+        <button class="link-btn" id="accessibility-btn">Accessibility</button>
+        <button class="link-btn" id="credits-btn">Credits</button>
+      </div>
+      <p class="controls-hint">
+        SPACE/UP to jump (unlimited multi-jump!) &bull; DOWN fast drop &bull;
+        LEFT/RIGHT move to dodge &bull; 1/2/3 modes &bull; P pause &bull; +/- speed
+      </p>
+      <p class="controls-hint">
+        2P: P1=Arrows/WASD &bull; P2=IJKL or Numpad &bull; Mouse: click jump, drag to reposition
+      </p>
+    </div>
+  </div>
+
+  <!-- Theme Picker Overlay -->
+  <div class="overlay" id="theme-overlay">
+    <div class="overlay-panel theme-panel">
+      <button class="overlay-x" id="theme-close">&times;</button>
+      <h2>Choose Theme</h2>
+      <div class="theme-grid" id="theme-grid"></div>
+      <h3>Star Style</h3>
+      <div class="star-grid" id="star-grid"></div>
+    </div>
+  </div>
+
+  <!-- Accessibility Overlay -->
+  <div class="overlay" id="accessibility-overlay">
+    <div class="overlay-panel">
+      <button class="overlay-x" id="access-close">&times;</button>
+      <h2>Accessibility</h2>
+      <div class="access-modes">
+        <button class="access-btn" data-access="minimal">
+          <strong>Minimal</strong>
+          <span>No stars, no flash effects, no glow, no cell explosions.</span>
+        </button>
+        <button class="access-btn selected" data-access="normal">
+          <strong>Normal</strong>
+          <span>Standard effects and visuals.</span>
+        </button>
+        <button class="access-btn" data-access="flashy">
+          <strong>Extra Flashy</strong>
+          <span>Stronger colors, glimmer effects.</span>
+        </button>
+      </div>
+      <div class="settings-row">
+        <label>
+          <input type="checkbox" id="game-3d-toggle" checked>
+          Enable 3D in gameplay
+        </label>
+      </div>
+      <div class="settings-row">
+        <label>
+          <input type="checkbox" id="note-display-toggle" checked>
+          Show note info in grid/player modes
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mutation Modal -->
+  <div class="overlay" id="mutation-overlay">
+    <div class="overlay-panel mutation-panel">
+      <button class="overlay-x" id="mutation-close">&times;</button>
+      <h2>Sound Mutation</h2>
+      <div class="mutation-grid" id="mutation-grid"></div>
+    </div>
+  </div>
+
+  <!-- Music Style Overlay -->
+  <div class="overlay" id="style-overlay">
+    <div class="overlay-panel style-panel">
+      <button class="overlay-x" id="style-close">&times;</button>
+      <h2>Music Style</h2>
+      <div class="style-sliders">
+        <div class="style-row">
+          <label>Speed</label>
+          <input type="range" id="style-speed" min="80" max="200" value="100" step="5">
+          <span class="style-value" id="style-speed-val">1.0x</span>
+        </div>
+        <div class="style-row">
+          <label>Arpeggio / Runs</label>
+          <input type="range" id="style-arpeggio" min="0" max="100" value="30" step="5">
+          <span class="style-value" id="style-arpeggio-val">30%</span>
+        </div>
+        <div class="style-row">
+          <label>Chord Density</label>
+          <input type="range" id="style-chords" min="0" max="100" value="50" step="5">
+          <span class="style-value" id="style-chords-val">50%</span>
+        </div>
+        <div class="style-row">
+          <label>Note Bending</label>
+          <input type="range" id="style-bend" min="0" max="100" value="20" step="5">
+          <span class="style-value" id="style-bend-val">20%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Overlay -->
+  <div class="overlay" id="help-overlay">
+    <div class="overlay-panel help-panel">
+      <button class="overlay-x" id="help-close">&times;</button>
+      <h2>Controls Guide</h2>
+      <div class="help-section" id="help-game-section">
+        <h3>Game</h3>
+        <table class="help-table">
+          <tr><td>SPACE / UP / Click</td><td>Jump (unlimited multi-jump!)</td></tr>
+          <tr><td>DOWN</td><td>Fast drop to ground</td></tr>
+          <tr><td>LEFT / RIGHT</td><td>Move to dodge incoming objects</td></tr>
+          <tr><td>Touch tap</td><td>Jump</td></tr>
+          <tr><td>Touch drag</td><td>Reposition</td></tr>
+        </table>
+      </div>
+      <div class="help-section" id="help-2p-section">
+        <h3>2-Player Controls</h3>
+        <table class="help-table">
+          <tr><td colspan="2"><strong>Player 1 (left side)</strong></td></tr>
+          <tr><td>SPACE / UP / W</td><td>Jump</td></tr>
+          <tr><td>DOWN / S</td><td>Fast drop</td></tr>
+          <tr><td>LEFT / RIGHT / A / D</td><td>Move</td></tr>
+          <tr><td colspan="2"><strong>Player 2 (right side)</strong></td></tr>
+          <tr><td>I / Numpad 8</td><td>Jump</td></tr>
+          <tr><td>K / Numpad 5</td><td>Fast drop</td></tr>
+          <tr><td>J / Numpad 4</td><td>Move left</td></tr>
+          <tr><td>L / Numpad 6</td><td>Move right</td></tr>
+        </table>
+      </div>
+      <div class="help-section" id="help-scoring-section">
+        <h3>Scoring</h3>
+        <p>Jump over an object: <strong>3 pts</strong> &bull; Hit an object: <strong>1 pt</strong></p>
+      </div>
+      <div class="help-section" id="help-player-section">
+        <h3>Music Player</h3>
+        <table class="help-table">
+          <tr><td>SPACE</td><td>Play / Pause</td></tr>
+          <tr><td>LEFT / RIGHT</td><td>Skip back / forward 15s</td></tr>
+          <tr><td>UP / DOWN</td><td>Volume up / down</td></tr>
+          <tr><td>Click track name</td><td>Open track list</td></tr>
+          <tr><td>1 / 2 / 3</td><td>Switch mode (Player / Game / Grid)</td></tr>
+        </table>
+      </div>
+      <div class="help-section" id="help-grid-section">
+        <h3>Grid Visualizer</h3>
+        <table class="help-table">
+          <tr><td>2D / 3D buttons</td><td>Switch grid dimension</td></tr>
+          <tr><td>SPACE</td><td>Play / Pause</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Instrument Selection Overlay -->
+  <div class="overlay" id="instrument-overlay">
+    <div class="overlay-panel instrument-panel">
+      <button class="overlay-x" id="instrument-close">&times;</button>
+      <h2>Instrument Soundbank</h2>
+      <p class="instrument-hint">Enable/disable instrument families for MIDI playback. Disabled instruments use additive synthesis fallback.</p>
+      <div class="instrument-grid" id="instrument-grid"></div>
+    </div>
+  </div>
+
+  <!-- Credits Overlay -->
+  <div class="overlay" id="credits-overlay">
+    <div class="overlay-panel credits-panel">
+      <button class="overlay-x" id="credits-close">&times;</button>
+      <h2>Credits</h2>
+      <div class="credits-content" id="credits-content">
+        <h3>inthebeginning bounce</h3>
+        <p>A cosmic physics simulation game with procedural music</p>
+        <h3>Created By</h3>
+        <p><strong>aiphenomenon</strong> &mdash; concept, design, direction</p>
+        <p><strong>Claude by Anthropic</strong> &mdash; engineering, music generation, testing</p>
+        <h3>Music</h3>
+        <p><strong>V8 Sessions Album</strong> &mdash; 12 tracks generated by RadioEngineV8</p>
+        <p>Artist: A. Johan Bizzle | License: CC BY-SA 4.0</p>
+        <h3>Classical MIDI Library</h3>
+        <p>1,771 MIDI files from 120 composers (Bach, Beethoven, Mozart, Chopin, and more)</p>
+        <p>Sources: MAESTRO Dataset (Google Magenta, CC BY-NC-SA 4.0),
+        ADL Piano MIDI Dataset (CC BY 4.0), Nottingham Music Database (Public Domain)</p>
+        <h3>Instrument Samples</h3>
+        <p>60 instrument samples synthesized from scratch via RadioEngineV8</p>
+        <h3>Technology</h3>
+        <p>Web Audio API &bull; WebAssembly (Rust) &bull; Vanilla JavaScript &bull; Canvas 2D</p>
+        <p>No external dependencies &bull; No build step &bull; No frameworks</p>
+        <h3>WebAssembly Synth</h3>
+        <p>Rust-compiled WASM engine: 13 timbres, 64-voice polyphony, ADSR envelopes</p>
+        <h3>Open Source</h3>
+        <p>Source: <a href="https://github.com/aiphenomenon/inthebeginning" target="_blank" style="color:var(--accent)">github.com/aiphenomenon/inthebeginning</a></p>
+        <p style="margin-top:2em;font-size:0.8em;opacity:0.6">We rise on the shoulders of giants, in their honor and service.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Screen -->
+  <div id="main-screen" class="screen">
+    <canvas id="main-canvas"></canvas>
+    <div class="song-title-display" id="song-title-display"></div>
+    <canvas id="blast-canvas"></canvas>
+
+    <!-- HUD overlay -->
+    <div class="hud" id="hud">
+      <div class="hud-left">
+        <span class="hud-score" id="hud-score">0</span>
+        <span class="hud-label" id="hud-score-label">POINTS</span>
+        <span class="hud-names" id="hud-names"></span>
+        <span class="hud-spacetime" id="hud-spacetime"></span>
+      </div>
+      <div class="hud-center">
+        <span class="hud-track" id="hud-track"></span>
+        <span class="hud-epoch" id="hud-epoch"></span>
+      </div>
+      <div class="hud-right">
+        <div class="mode-tabs" id="mode-tabs">
+          <button class="tab-btn" data-mode="player" title="Music Player (1)">&#9835;</button>
+          <button class="tab-btn active" data-mode="game" title="Game (2)">&#9654;</button>
+          <button class="tab-btn" data-mode="grid" title="Grid (3)">&#9638;</button>
+        </div>
+        <div class="grid-dim-tabs" id="grid-dim-tabs" style="display:none">
+          <button class="dim-btn active" data-dim="2d">2D</button>
+          <button class="dim-btn" data-dim="3d">3D</button>
+        </div>
+        <button class="hud-btn" id="speed-down" title="Slower">-</button>
+        <button class="hud-btn" id="speed-up" title="Faster">+</button>
+        <button class="hud-btn" id="pause-btn" title="Pause">&#9646;&#9646;</button>
+        <button class="hud-btn" id="mute-btn" title="Mute">&#128266;</button>
+        <button class="hud-btn" id="mutation-btn" title="Mutation">&#9836;</button>
+        <button class="hud-btn" id="instrument-btn" title="Instruments">&#127929;</button>
+        <button class="hud-btn" id="style-btn" title="Style">&#127911;</button>
+        <button class="hud-btn" id="ingame-theme-btn" title="Theme">&#127912;</button>
+        <button class="hud-btn" id="ingame-access-btn" title="Settings">&#9881;</button>
+        <button class="hud-btn" id="ingame-help-btn" title="Help">?</button>
+        <button class="hud-btn" id="restart-btn" title="Restart">&#8634;</button>
+      </div>
+    </div>
+
+    <!-- Music player bar (bottom) -->
+    <div class="music-bar" id="music-bar">
+      <div class="music-controls">
+        <button class="music-btn" id="prev-btn" title="Previous">&#9198;</button>
+        <button class="music-btn" id="play-btn" title="Play/Pause">&#9654;</button>
+        <button class="music-btn" id="next-btn" title="Next">&#9197;</button>
+      </div>
+      <div class="music-id3" id="music-id3">
+        <span class="id3-title" id="id3-title"></span>
+        <span class="id3-artist" id="id3-artist"></span>
+        <span class="id3-album-info" id="id3-album-info"></span>
+      </div>
+      <div class="music-progress">
+        <input type="range" class="music-seek" id="music-seek" min="0" max="100" value="0" step="0.1">
+        <span class="music-time" id="music-time">0:00 / 0:00</span>
+      </div>
+      <div class="music-volume">
+        <input type="range" class="music-vol" id="music-vol" min="0" max="100" value="80">
+      </div>
+    </div>
+
+    <!-- Radio interstitial overlay (shown during station ID) -->
+    <div class="interstitial-overlay" id="interstitial-overlay" style="display:none">
+      <div class="interstitial-content">
+        <div class="interstitial-logo">&#9729;</div>
+        <div class="interstitial-text">In The Beginning Radio</div>
+      </div>
+    </div>
+
+    <!-- Note info panel -->
+    <div class="note-info" id="note-info">
+      <div class="note-info-content" id="note-info-content"></div>
+    </div>
+
+    <!-- MIDI/Synth info panel (shows source MIDI, raw arrangement, then effects) -->
+    <div class="midi-info" id="midi-info">
+      <div class="midi-info-source" id="midi-source"></div>
+      <div class="midi-info-notes" id="midi-notes"></div>
+      <div class="midi-info-composer" id="midi-composer"></div>
+      <div class="midi-info-piece" id="midi-piece"></div>
+      <div class="midi-info-era" id="midi-era"></div>
+      <div class="midi-info-mutation" id="midi-mutation"></div>
+    </div>
+  </div>
+
+  <!-- Track list overlay -->
+  <div class="track-overlay" id="track-overlay">
+    <div class="track-list-panel" id="track-list-panel">
+      <button class="overlay-x" id="track-close">&times;</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/music-sync.js"></script>
+  <script src="js/background.js"></script>
+  <script src="js/characters.js"></script>
+  <script src="js/runner.js"></script>
+  <script src="js/obstacles.js"></script>
+  <script src="js/renderer3d.js"></script>
+  <script src="js/blast-effect.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/synth-engine.js"></script>
+  <script src="js/midi-player.js"></script>
+  <script src="js/music-generator.js"></script>
+  <script src="js/wasm-synth.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
