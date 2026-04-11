@@ -1,0 +1,2 @@
+shared/audio/soundfonts/*.sf2 filter=lfs diff=lfs merge=lfs -text
+shared/audio/soundfonts/*.sf3 filter=lfs diff=lfs merge=lfs -text
