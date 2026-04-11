@@ -1,0 +1,808 @@
+/* ==========================================================================
+   inthebeginning bounce — V8 Sessions
+   Three modes: Music Player, Game, Grid Visualizer
+   Three sound modes: MP3 Album, MIDI Library, Synth Generator
+   Two-player cooperative, progressive 3D, themes, accessibility
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050510;
+  --accent-hue: 200;
+  --accent: hsl(var(--accent-hue), 70%, 55%);
+  --text: #e0e0e0;
+  --text-dim: #666;
+  --hud-bg: rgba(5, 5, 16, 0.6);
+  --bar-bg: rgba(10, 10, 20, 0.85);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+  user-select: none;
+}
+
+/* ---------- Screens ---------- */
+.screen { position: fixed; inset: 0; display: none; }
+.screen.active { display: flex; }
+
+/* ---------- Title Screen ---------- */
+#title-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #0a0a30 0%, #050510 70%);
+}
+
+.title-content { text-align: center; max-height: 100dvh; max-height: 100vh; overflow-y: auto; padding: 20px; }
+
+.title-text {
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  background: linear-gradient(135deg, #4af, #a4f, #f4a, #4af);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: title-shimmer 4s ease infinite;
+  line-height: 1.1;
+}
+.title-prefix {
+  font-size: clamp(16px, 3.5vw, 32px);
+  letter-spacing: 0.25em;
+  font-weight: 300;
+}
+.title-main {
+  font-size: clamp(36px, 10vw, 80px);
+  letter-spacing: 0.08em;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 0 0 40px rgba(100, 160, 255, 0.3);
+}
+
+@keyframes title-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.subtitle {
+  font-size: clamp(11px, 2.5vw, 16px);
+  color: var(--text-dim);
+  margin-top: 6px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* ---------- Mode / Player Selection ---------- */
+.mode-select, .player-count-select {
+  display: flex; gap: 10px; justify-content: center; margin: 16px 0;
+}
+
+.mode-btn, .player-count-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text-dim);
+  font-family: inherit; font-size: 12px;
+  cursor: pointer; transition: all 0.3s;
+  min-width: 80px;
+}
+
+.player-count-btn { flex-direction: row; gap: 6px; min-width: 100px; }
+
+.mode-btn:hover, .player-count-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
+
+.mode-btn.selected, .player-count-btn.selected {
+  background: rgba(100, 180, 255, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mode-icon { font-size: 24px; }
+.mode-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.start-btn {
+  display: inline-block;
+  padding: 12px 40px;
+  font-family: inherit; font-size: 16px; font-weight: 700;
+  letter-spacing: 0.2em; color: #fff;
+  background: linear-gradient(135deg, hsl(200, 70%, 45%), hsl(260, 70%, 50%));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px; cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(100, 150, 255, 0.4); }
+
+.title-links {
+  display: flex; gap: 12px; justify-content: center; margin-top: 16px;
+}
+
+.link-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-dim); font-family: inherit; font-size: 11px;
+  padding: 6px 16px; border-radius: 16px; cursor: pointer;
+  transition: all 0.2s; letter-spacing: 0.1em;
+}
+
+.link-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+.controls-hint {
+  margin-top: 10px; font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+/* ---------- Audio Mode Select (Title Screen) ---------- */
+.audio-mode-select {
+  display: flex; gap: 16px; margin: 10px 0;
+  align-items: center; justify-content: center;
+  flex-wrap: wrap;
+}
+
+.sound-mode-label {
+  font-size: 12px; color: var(--text-dim); font-weight: 600;
+}
+
+.sound-mode-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+  font-family: inherit; font-size: 12px;
+  padding: 4px 8px; border-radius: 6px;
+  cursor: pointer;
+}
+
+.sound-mode-select option {
+  background: #1a1a2e;
+  color: var(--text);
+}
+
+.toggle-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; cursor: pointer; color: var(--text-dim);
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer;
+}
+
+.toggle-text { font-weight: 600; color: var(--text); }
+.toggle-hint { font-size: 10px; color: var(--text-dim); }
+
+/* ---------- Overlays ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: none; align-items: center; justify-content: center;
+  z-index: 200;
+}
+
+.overlay.visible { display: flex; }
+
+.overlay-panel {
+  position: relative;
+  background: rgba(15, 15, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px; padding: 20px;
+  max-width: 500px; width: 90%;
+  max-height: 80vh; overflow-y: auto;
+}
+
+.overlay-panel h2 { font-size: 16px; letter-spacing: 0.15em; margin-bottom: 14px; }
+.overlay-panel h3 { font-size: 12px; color: var(--text-dim); margin: 14px 0 8px; letter-spacing: 0.1em; }
+
+.overlay-x {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none;
+  color: var(--text-dim); font-size: 22px;
+  cursor: pointer; line-height: 1;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.overlay-x:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+
+/* Theme / Star chips */
+.theme-grid, .star-grid {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+.theme-chip, .star-chip {
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-dim); font-family: inherit; font-size: 11px;
+  cursor: pointer; transition: all 0.2s;
+}
+
+.theme-chip:hover, .star-chip:hover {
+  background: rgba(255,255,255,0.08); color: var(--text);
+}
+
+.theme-chip.selected, .star-chip.selected {
+  background: rgba(100,180,255,0.12); color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Accessibility modes */
+.access-modes { display: flex; flex-direction: column; gap: 8px; }
+
+.access-btn {
+  text-align: left; padding: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text-dim); font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+
+.access-btn strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+.access-btn span { font-size: 11px; }
+.access-btn:hover { background: rgba(255,255,255,0.08); }
+.access-btn.selected { background: rgba(100,180,255,0.1); border-color: var(--accent); }
+
+/* Settings rows */
+.settings-row {
+  margin-top: 12px; padding: 8px;
+  font-size: 12px; color: var(--text-dim);
+}
+
+.settings-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.settings-row input[type="checkbox"] { accent-color: var(--accent); }
+
+/* ---------- Mutation Modal ---------- */
+.mutation-panel { max-width: 520px; }
+
+.mutation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.mutation-chip {
+  padding: 8px 4px;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-family: inherit; font-size: 10px;
+  text-align: center;
+  cursor: pointer; transition: all 0.2s;
+  line-height: 1.3;
+}
+
+.mutation-chip:hover {
+  background: rgba(255,255,255,0.08); color: var(--text);
+}
+
+.mutation-chip.selected {
+  background: rgba(160, 100, 255, 0.15);
+  border-color: #a4f;
+  color: #c8f;
+}
+
+/* ---------- Style Panel ---------- */
+.style-panel { max-width: 400px; }
+
+.style-sliders { display: flex; flex-direction: column; gap: 12px; }
+
+.style-row {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.style-row label {
+  flex: 0 0 120px;
+  font-size: 11px; color: var(--text-dim);
+  text-align: right;
+}
+
+.style-row input[type="range"] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 4px; background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px; outline: none; cursor: pointer;
+}
+
+.style-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent);
+  border: 2px solid #fff; cursor: pointer;
+}
+
+.style-row input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent);
+  border: 2px solid #fff; cursor: pointer;
+}
+
+.style-value {
+  flex: 0 0 40px;
+  font-size: 11px; color: var(--accent);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Help overlay */
+.help-panel { max-width: 550px; }
+
+.help-section { margin-bottom: 14px; }
+.help-section h3 { font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+.help-section p { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+.help-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 11px;
+}
+
+.help-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--text-dim);
+}
+
+.help-table td:first-child {
+  color: var(--text); font-weight: 600;
+  white-space: nowrap; width: 40%;
+}
+
+.help-sub {
+  color: var(--accent) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-top: 8px !important;
+}
+
+/* ---------- Main Canvas ---------- */
+#main-screen { flex-direction: column; }
+
+#main-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+
+#blast-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 5;
+}
+
+/* ---------- Song Title Display (player mode) ---------- */
+.song-title-display {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(20px, 5vw, 48px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+  z-index: 4;
+  max-width: 85%;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.song-title-display.visible { opacity: 0.7; }
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(4px);
+  z-index: 10; pointer-events: none;
+}
+
+.hud > * { pointer-events: auto; }
+.hud-left, .hud-right, .hud-center { display: flex; align-items: center; gap: 6px; }
+.hud-right { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 60vw; flex-wrap: nowrap; }
+.hud-center { flex-direction: column; gap: 2px; align-items: center; }
+
+.hud-score { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.hud-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.15em; }
+.hud-names { font-size: 10px; color: var(--accent); letter-spacing: 0.1em; margin-left: 8px; }
+.hud-spacetime {
+  font-size: 9px; color: rgba(180, 200, 220, 0.6);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  margin-left: 8px;
+}
+
+.hud-track {
+  font-size: 11px; color: var(--accent);
+  max-width: 220px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer;
+}
+
+.hud-epoch {
+  font-size: 9px; color: var(--text-dim);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.hud-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  width: 28px; height: 28px;
+  min-width: 44px; min-height: 44px;
+  border-radius: 50%; cursor: pointer;
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.hud-btn:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--accent); }
+
+/* ---------- Mode / Dim Tabs ---------- */
+.mode-tabs, .grid-dim-tabs {
+  display: flex; gap: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px; padding: 2px; margin-right: 6px;
+}
+
+.tab-btn, .dim-btn {
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-dim); font-size: 12px; cursor: pointer;
+  width: 26px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px; transition: all 0.2s;
+  font-family: inherit;
+}
+
+.dim-btn { width: auto; padding: 2px 6px; font-size: 10px; }
+
+.tab-btn:hover, .dim-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.tab-btn.active, .dim-btn.active {
+  color: var(--accent); background: rgba(100, 180, 255, 0.12);
+  border-color: rgba(100, 180, 255, 0.2);
+}
+
+/* ---------- Music Bar ---------- */
+.music-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 12px;
+  background: var(--bar-bg); backdrop-filter: blur(8px);
+  z-index: 10; height: 44px;
+}
+
+.music-controls { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+
+.music-btn {
+  background: transparent; border: none; color: var(--text);
+  font-size: 14px; cursor: pointer;
+  width: 28px; height: 28px;
+  min-width: 44px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation;
+  border-radius: 50%; transition: all 0.2s;
+}
+
+.music-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--accent); }
+
+#play-btn {
+  width: 32px; height: 32px;
+  min-width: 44px; min-height: 44px;
+  background: var(--accent); color: #fff; font-size: 13px;
+}
+#play-btn:hover { transform: scale(1.1); }
+
+.music-progress { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.music-seek {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 3px; background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px; outline: none; cursor: pointer;
+  touch-action: manipulation;
+}
+
+.music-seek::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--accent);
+  border: 2px solid #fff; cursor: pointer;
+}
+
+.music-seek::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%; background: var(--accent);
+  border: 2px solid #fff; cursor: pointer;
+}
+
+.music-time {
+  font-size: 10px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; min-width: 70px; text-align: right;
+}
+
+.music-volume { display: flex; align-items: center; flex-shrink: 0; }
+
+.music-vol {
+  -webkit-appearance: none; appearance: none;
+  width: 50px; height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px; outline: none; cursor: pointer;
+}
+
+.music-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--accent);
+  border: 2px solid #fff; cursor: pointer;
+}
+
+.music-vol::-moz-range-thumb {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #fff; cursor: pointer;
+}
+
+/* ---------- ID3 Info (near play controls) ---------- */
+.music-id3 {
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 1px; min-width: 0; max-width: 180px; flex-shrink: 1;
+  overflow: hidden;
+}
+
+.id3-title {
+  font-size: 11px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.id3-artist {
+  font-size: 9px; color: var(--accent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.id3-album-info {
+  font-size: 8px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------- Interstitial Overlay ---------- */
+.interstitial-overlay {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, #0a0a40 0%, #050510 80%);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  animation: interstitial-fade-in 0.5s ease;
+}
+
+.interstitial-content { text-align: center; }
+
+.interstitial-logo {
+  font-size: 80px; line-height: 1;
+  filter: drop-shadow(0 0 30px rgba(100, 150, 255, 0.5));
+  animation: interstitial-pulse 2s ease-in-out infinite;
+}
+
+.interstitial-text {
+  font-size: 24px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  background: linear-gradient(135deg, #4af, #a4f);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 16px;
+}
+
+@keyframes interstitial-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes interstitial-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+/* ---------- Note Info Panel ---------- */
+.note-info {
+  position: absolute; bottom: 48px; left: 0; right: 0;
+  padding: 3px 12px;
+  background: rgba(5, 5, 16, 0.7); backdrop-filter: blur(4px);
+  z-index: 9; max-height: 50px; overflow: hidden;
+  font-size: 9px; color: var(--text-dim); letter-spacing: 0.05em;
+  display: none;
+}
+
+.note-info.visible { display: block; }
+.note-info-content { display: flex; flex-wrap: wrap; gap: 3px 8px; }
+
+.note-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 4px; border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05); white-space: nowrap;
+}
+
+.note-tag .note-pitch { color: var(--accent); font-weight: 600; }
+.note-tag .note-inst { color: #888; }
+
+/* ---------- Track Overlay ---------- */
+.track-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.track-overlay.visible { display: flex; }
+
+.track-list-panel {
+  position: relative;
+  background: rgba(15, 15, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px; padding: 16px;
+  max-width: 420px; width: 90%;
+  max-height: 70vh; overflow-y: auto;
+}
+
+.track-list-panel .track-entry {
+  padding: 8px 10px; cursor: pointer; border-radius: 5px;
+  font-size: 12px; color: var(--text-dim); transition: all 0.2s;
+}
+.track-list-panel .track-entry:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+.track-list-panel .track-entry.active { color: var(--accent); background: rgba(100, 180, 255, 0.08); }
+
+/* ---------- MIDI Info Panel ---------- */
+.midi-info {
+  position: absolute; top: 40px; right: 10px;
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(5, 5, 16, 0.8); backdrop-filter: blur(4px);
+  font-size: 10px; z-index: 10;
+  max-width: 280px; display: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.midi-info.visible { display: block; }
+
+.midi-info-source {
+  color: rgba(180, 220, 255, 0.8); font-size: 9px;
+  font-style: italic; margin-bottom: 2px;
+}
+
+.midi-info-notes {
+  color: rgba(180, 220, 255, 0.6); font-size: 9px;
+  margin-bottom: 3px;
+}
+
+.midi-info-composer {
+  color: var(--accent); font-weight: 700;
+  font-size: 12px; margin-bottom: 2px;
+}
+
+.midi-info-piece {
+  color: var(--text); font-style: italic;
+  margin-bottom: 2px; line-height: 1.3;
+}
+
+.midi-info-era {
+  color: var(--text-dim); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.midi-info-mutation {
+  color: #a4a; font-size: 9px; margin-top: 3px;
+}
+
+/* ---------- Pause Overlay ---------- */
+.pause-overlay {
+  position: fixed; inset: 0;
+  background: rgba(5, 5, 16, 0.8);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 50;
+}
+.pause-overlay h2 { font-size: 32px; letter-spacing: 0.2em; margin-bottom: 12px; }
+.pause-overlay p { font-size: 13px; color: var(--text-dim); }
+
+/* ---------- Mode-specific ---------- */
+body.mode-player #main-canvas { opacity: 0.15; }
+body.mode-player .hud-score, body.mode-player .hud-label#hud-score-label,
+body.mode-player .hud-names, body.mode-player .hud-spacetime { display: none !important; }
+
+body.mode-grid #main-canvas { opacity: 1; }
+body.mode-grid .hud-score, body.mode-grid .hud-label#hud-score-label,
+body.mode-grid .hud-names, body.mode-grid .hud-spacetime { display: none !important; }
+
+/* ---------- Touch / Mobile ---------- */
+button, .mode-btn, .player-count-btn, .tab-btn, .dim-btn,
+.overlay-close, .mutation-option, .theme-chip, .star-chip {
+  touch-action: manipulation;
+}
+
+/* Safe-area insets for notched devices (iPhone X+, etc.) */
+@supports (padding: max(0px)) {
+  .hud {
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .music-bar {
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* ---------- Responsive ---------- */
+
+/* Tablets (768px) */
+@media (max-width: 768px) {
+  .overlay-panel { max-width: 90vw; }
+  .hud-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* Phones (640px) */
+@media (max-width: 640px) {
+  .hud { padding: 3px 6px; }
+  .hud-score { font-size: 16px; }
+  .hud-track { max-width: 90px; font-size: 10px; }
+  .hud-epoch { font-size: 10px; }
+  .hud-spacetime { display: none; }
+  .music-bar { padding: 3px 6px; gap: 4px; height: 44px; }
+  .music-vol, .music-volume { display: none; }
+  .music-time { font-size: 10px; min-width: 55px; }
+  .music-id3 { max-width: 100px; }
+  .id3-album-info { display: none; }
+  .mode-select, .player-count-select { gap: 6px; }
+  .mode-btn, .player-count-btn { padding: 10px 14px; min-width: 70px; min-height: 44px; }
+  .mode-icon { font-size: 20px; }
+  .star-grid { max-height: 150px; overflow-y: auto; }
+  .overlay-panel { padding: 14px; }
+  .help-table td { font-size: 10px; padding: 2px 4px; }
+  .mutation-grid { grid-template-columns: repeat(2, 1fr); }
+  .style-row label { flex: 0 0 80px; }
+  .music-seek::-webkit-slider-thumb { width: 20px; height: 20px; }
+  .music-seek::-moz-range-thumb { width: 20px; height: 20px; }
+}
+
+/* Small phones (400px) */
+@media (max-width: 400px) {
+  #prev-btn, #next-btn { font-size: 14px; padding: 4px; }
+  .mode-tabs { gap: 2px; }
+  .hud-center { display: none; }
+  .mutation-grid { grid-template-columns: repeat(2, 1fr); }
+  .music-id3 { display: none; }
+}
+
+/* Landscape phones — reduce vertical space usage */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud { padding: 2px 6px; }
+  .music-bar { height: 40px; }
+  .title-content { padding: 8px; }
+  .overlay-panel { max-height: 95vh; overflow-y: auto; }
+}
+
+/* Credits panel */
+.credits-panel { max-height: 80vh; overflow-y: auto; }
+.credits-content h3 { color: var(--accent); margin-top: 1.2em; margin-bottom: 0.3em; font-size: 0.95em; }
+.credits-content p { font-size: 0.85em; line-height: 1.4; margin: 0.2em 0; }
+.credits-content a { text-decoration: none; }
+.credits-content a:hover { text-decoration: underline; }
+
+
+/* Instrument selection */
+.instrument-panel { max-height: 80vh; overflow-y: auto; }
+.instrument-hint { font-size: 0.8em; opacity: 0.6; margin-bottom: 1em; }
+.instrument-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.instrument-chip {
+  padding: 10px; border-radius: 8px; border: 1px solid rgba(100,160,255,0.2);
+  background: rgba(20,30,50,0.8); color: rgba(200,220,240,0.5); cursor: pointer;
+  font-size: 0.85em; transition: all 0.2s;
+}
+.instrument-chip.enabled {
+  border-color: var(--accent); color: #fff; background: rgba(40,60,100,0.6);
+}
+.instrument-chip:hover { border-color: var(--accent); }
+
+
+/* MIDI source and effects tags in note info */
+.midi-source-tag { background: rgba(100,160,255,0.15); border: 1px solid rgba(100,160,255,0.3); }
+.effects-tag { background: rgba(255,160,80,0.15); border: 1px solid rgba(255,160,80,0.3); font-style: italic; }
+
